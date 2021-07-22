@@ -1243,10 +1243,6 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
         seekResult = sidEngine.m_engine->play(seekBuffer, seekCount);
         delete seekBuffer;
         if (seekResult == seekCount) {
-            std::ofstream outfile ("debug.txt", std::ios_base::app);
-            outfile << "FORWARD | seekCount:" << seekCount << " | seekResult:" << seekResult << std::endl;
-            outfile.close();
-
             return sidEngine.m_engine->time();
         } else {
             return -1;
