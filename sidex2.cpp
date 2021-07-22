@@ -956,7 +956,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.3)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.4)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1142,7 +1142,7 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             }
 
             if (sidEngine.m_engine->load(sidEngine.p_song)) {
-                xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
+                xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
                 sidEngine.xmpfile = file;
                 return 2;
             } else {
@@ -1204,6 +1204,10 @@ static void WINAPI SIDex_SetFormat(XMPFORMAT *form)
         form->chan = 1;
     }
 }
+static double WINAPI SIDex_GetGranularity()
+{
+    return 0.001;
+}
 static double WINAPI SIDex_SetPosition(DWORD pos)
 {
     if (pos &  XMPIN_POS_SUBSONG1 || pos & XMPIN_POS_SUBSONG) {
@@ -1214,10 +1218,39 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
         sidEngine.p_song->selectSong(sidEngine.p_subsong);
         sidEngine.m_engine->load(sidEngine.p_song);
         //
-        xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
+        xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
         xmpfin->UpdateTitle(NULL);
         //
         return 0;
+    } else if (pos) {
+        int seekTarget=pos*SIDex_GetGranularity();
+        int seekState=sidEngine.m_engine->time();
+        int seekResult;
+        
+        //oh dear we have to go back
+        if (seekTarget <= seekState) {
+            if (sidEngine.m_engine->isPlaying()) {
+                sidEngine.m_engine->stop();
+            }
+            sidEngine.m_engine->load(sidEngine.p_song);
+            seekState = 0;
+            seekTarget += 1;
+        }
+        
+        //attempt to seek
+        int seekCount=((seekTarget-seekState) * std::stoi(sidSetting.c_frequency))*2;
+        short * seekBuffer = new short [seekCount];
+        seekResult = sidEngine.m_engine->play(seekBuffer, seekCount);
+        delete seekBuffer;
+        if (seekResult == seekCount) {
+            std::ofstream outfile ("debug.txt", std::ios_base::app);
+            outfile << "FORWARD | seekCount:" << seekCount << " | seekResult:" << seekResult << std::endl;
+            outfile.close();
+
+            return sidEngine.m_engine->time();
+        } else {
+            return -1;
+        }
     } else {
         return -1;
     }
@@ -1287,7 +1320,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.3)",
+    "SIDex (v0.4)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
@@ -1302,7 +1335,7 @@ static XMPIN xmpin={
     SIDex_GetGeneralInfo,
     NULL, // SIDex_GetMessage
     SIDex_SetPosition,
-    NULL, // SIDex_GetGranularity
+    SIDex_GetGranularity,
     NULL, // SIDex_GetBuffering
     SIDex_Process,
     NULL, // WriteFile
