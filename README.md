@@ -24,4 +24,4 @@ v0.1
 	* z80maniac (Alexey Parfenov) / zxtune
 	* zbych-r / in_sidplay2
 	* Ian Luck / XMPlay + flac input plugin sample
-	& the whole libsidplayfp-2.2.0 team
+	* the whole libsidplayfp-2.2.0 team
