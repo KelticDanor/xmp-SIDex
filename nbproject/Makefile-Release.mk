@@ -109,7 +109,7 @@ LDLIBSOPTIONS=
 
 ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/xmp-sidex.${CND_DLIB_EXT}: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
-	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/xmp-sidex.${CND_DLIB_EXT} ${OBJECTFILES} ${LDLIBSOPTIONS} configdialog.o -Wl,-k -mwindows -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic -shared
+	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/xmp-sidex.${CND_DLIB_EXT} ${OBJECTFILES} ${LDLIBSOPTIONS} configdialog.o -Wl,-k -mwindows -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic -shared -s
 
 ${OBJECTDIR}/libsidplayfp/src/EventScheduler.o: libsidplayfp/src/EventScheduler.cpp
 	${MKDIR} -p ${OBJECTDIR}/libsidplayfp/src

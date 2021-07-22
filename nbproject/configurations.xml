@@ -388,6 +388,7 @@
         </asmTool>
         <linkerTool>
           <output>${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/xmp-sidex.${CND_DLIB_EXT}</output>
+          <stripSymbols>true</stripSymbols>
           <commandLine>configdialog.o -Wl,-k -mwindows -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic</commandLine>
         </linkerTool>
       </compileType>
