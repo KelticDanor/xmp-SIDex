@@ -1,0 +1,613 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="100">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <logicalFolder name="HeaderFiles"
+                   displayName="Header Files"
+                   projectFiles="true">
+      <itemPath>configdialog.h</itemPath>
+      <itemPath>export.h</itemPath>
+      <itemPath>xmplay/xmpfunc.h</itemPath>
+      <itemPath>xmplay/xmpin.h</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ResourceFiles"
+                   displayName="Resource Files"
+                   projectFiles="true">
+      <itemPath>configdialog.rc</itemPath>
+    </logicalFolder>
+    <logicalFolder name="SourceFiles"
+                   displayName="Source Files"
+                   projectFiles="true">
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Dac.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/EnvelopeGenerator.cpp</itemPath>
+      <itemPath>libsidplayfp/src/EventScheduler.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/ExternalFilter.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Filter.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Filter6581.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Filter8580.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/FilterModelConfig6581.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/FilterModelConfig8580.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Integrator6581.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Integrator8580.cpp</itemPath>
+      <itemPath>libsidplayfp/src/utils/MD5/MD5.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidtune/MUS.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/OpAmp.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidtune/PSID.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/SID.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/CIA/SerialPort.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidplayfp/SidConfig.cpp</itemPath>
+      <itemPath>libsidplayfp/src/utils/SidDatabase.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidplayfp/SidInfo.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidplayfp/SidTune.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidtune/SidTuneBase.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidplayfp/SidTuneInfo.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidtune/SidTuneTools.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/resample/SincResampler.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/Spline.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/WaveformCalculator.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp/WaveformGenerator.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/c64.cpp</itemPath>
+      <itemPath>libsidplayfp/src/utils/iniParser.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/CIA/interrupt.cpp</itemPath>
+      <itemPath>libsidplayfp/src/utils/md5Factory.cpp</itemPath>
+      <itemPath>libsidplayfp/src/mixer.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/mmu.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/CPU/mos6510.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/CIA/mos652x.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/VIC_II/mos656x.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidtune/p00.cpp</itemPath>
+      <itemPath>libsidplayfp/src/player.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidtune/prg.cpp</itemPath>
+      <itemPath>libsidplayfp/src/psiddrv.cpp</itemPath>
+      <itemPath>libsidplayfp/src/reloc65.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp-builder.cpp</itemPath>
+      <itemPath>libsidplayfp/src/builders/residfp-builder/residfp-emu.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidplayfp/sidbuilder.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidemu.cpp</itemPath>
+      <itemPath>sidex2.cpp</itemPath>
+      <itemPath>libsidplayfp/src/sidplayfp/sidplayfp.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/CIA/timer.cpp</itemPath>
+      <itemPath>libsidplayfp/src/c64/CIA/tod.cpp</itemPath>
+      <itemPath>xmplay/xmpin.def</itemPath>
+    </logicalFolder>
+    <logicalFolder name="TestFiles"
+                   displayName="Test Files"
+                   projectFiles="false"
+                   kind="TEST_LOGICAL_FOLDER">
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceRootList>
+    <Elem>libsidplayfp/src</Elem>
+    <Elem>xmplay</Elem>
+  </sourceRootList>
+  <projectmakefile>Makefile</projectmakefile>
+  <confs>
+    <conf name="Debug" type="2">
+      <toolsSet>
+        <compilerSet>MinGW|MinGW</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <standard>10</standard>
+        </cTool>
+        <ccTool>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <commandlineTool>g++</commandlineTool>
+          <incDir>
+            <pElem>xmplay</pElem>
+            <pElem>libsidplayfp/src</pElem>
+            <pElem>libsidplayfp/src/builders/residfp-builder</pElem>
+            <pElem>libsidplayfp/src/builders/residfp-builder/residfp</pElem>
+          </incDir>
+          <incFile>
+            <pElem>xmplay/xmpin.h</pElem>
+            <pElem>xmplay/xmpfunc.h</pElem>
+          </incFile>
+          <preprocessorList>
+            <Elem>WIN32</Elem>
+            <Elem>WINDOWS</Elem>
+          </preprocessorList>
+          <warningLevel>0</warningLevel>
+        </ccTool>
+        <fortranCompilerTool>
+          <warningLevel>0</warningLevel>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <warningLevel>0</warningLevel>
+        </asmTool>
+        <linkerTool>
+          <output>${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/xmp-sidex2.${CND_DLIB_EXT}</output>
+          <commandLine>-Wl,-k -mwindows</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="configdialog.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="configdialog.rc" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="export.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/EventScheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp-builder.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp-emu.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Dac.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/EnvelopeGenerator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/ExternalFilter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Filter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Filter6581.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Filter8580.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/FilterModelConfig6581.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/FilterModelConfig8580.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Integrator6581.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Integrator8580.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/OpAmp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/SID.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Spline.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/WaveformCalculator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/WaveformGenerator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/resample/SincResampler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/SerialPort.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/interrupt.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/mos652x.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/timer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/tod.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CPU/mos6510.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/VIC_II/mos656x.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/c64.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/mmu.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/mixer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/player.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/psiddrv.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/reloc65.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidemu.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidConfig.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidInfo.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidTune.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidTuneInfo.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/sidbuilder.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/sidplayfp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/MUS.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/PSID.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/SidTuneBase.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/SidTuneTools.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/p00.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/prg.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/MD5/MD5.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/SidDatabase.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/iniParser.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/md5Factory.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="sidex2.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="xmplay/xmpfunc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="xmplay/xmpin.def" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="xmplay/xmpin.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Release" type="2">
+      <toolsSet>
+        <compilerSet>MinGW|MinGW</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <incDir>
+            <pElem>xmplay</pElem>
+            <pElem>libsidplayfp/src</pElem>
+            <pElem>libsidplayfp/src/builders/residfp-builder</pElem>
+            <pElem>libsidplayfp/src/builders/residfp-builder/residfp</pElem>
+          </incDir>
+          <incFile>
+            <pElem>xmplay/xmpin.h</pElem>
+            <pElem>xmplay/xmpfunc.h</pElem>
+          </incFile>
+          <preprocessorList>
+            <Elem>WIN32</Elem>
+            <Elem>WINDOWS</Elem>
+          </preprocessorList>
+          <warningLevel>0</warningLevel>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <warningLevel>0</warningLevel>
+        </asmTool>
+        <linkerTool>
+          <output>${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/xmp-sidex.${CND_DLIB_EXT}</output>
+          <commandLine>configdialog.o -Wl,-k -mwindows -static-libgcc -static-libstdc++ -Wl,-Bstatic -lstdc++ -lpthread -Wl,-Bdynamic</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="configdialog.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="configdialog.rc" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="export.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/EventScheduler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp-builder.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp-emu.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Dac.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/EnvelopeGenerator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/ExternalFilter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Filter.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Filter6581.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Filter8580.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/FilterModelConfig6581.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/FilterModelConfig8580.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Integrator6581.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Integrator8580.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/OpAmp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/SID.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/Spline.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/WaveformCalculator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/WaveformGenerator.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/builders/residfp-builder/residfp/resample/SincResampler.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/SerialPort.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/interrupt.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/mos652x.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/timer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CIA/tod.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/CPU/mos6510.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/VIC_II/mos656x.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/c64.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/c64/mmu.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/mixer.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/player.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/psiddrv.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/reloc65.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidemu.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidConfig.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidInfo.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidTune.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/SidTuneInfo.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/sidbuilder.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidplayfp/sidplayfp.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/MUS.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/PSID.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/SidTuneBase.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/SidTuneTools.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/p00.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/sidtune/prg.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/MD5/MD5.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/SidDatabase.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/iniParser.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/md5Factory.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
+      </item>
+      <item path="sidex2.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="xmplay/xmpfunc.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="xmplay/xmpin.def" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="xmplay/xmpin.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

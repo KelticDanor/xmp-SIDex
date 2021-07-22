@@ -1,0 +1,13 @@
+#pragma once
+
+#define IDD_DIALOG_CONFIG    1000
+#define IDC_COMBO_SID   1010
+#define IDC_COMBO_CLOCK   1011
+#define IDC_COMBO_CORE   1014
+#define IDC_COMBO_FREQUENCY   1012
+#define IDC_COMBO_CHANNELS   1013
+#define IDC_CHECK_LOCKSID    1020
+#define IDC_CHECK_LOCKCLOCK    1021
+#define IDC_EDIT_DEFAULTLENGTH     1030
+#define IDC_EDIT_DBPATH     1031
+#define IDC_STATIC           -1
