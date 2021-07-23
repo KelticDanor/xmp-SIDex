@@ -5,6 +5,17 @@ SID Input Plugin for the XMPlay audio player
 This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.0 library, it is also my first input plug in so be gentle.
 
 # Change Log
+v0.5
+- Several things cleaned up by Ian to be less explosive
+- SID filter enable option
+- 6581 filter strength is in appears to work
+- 8580 digi boost option added
+- Artist/Title converted to UTF8 using XMPlay functions, seems to work nicely
+- Main panel should correctly indicate tune sid model and clock speed now
+- Added [b]VERY[/b] rudimentary STIL support, might actually cause crashes so use with caution
+- Turns out relative/full paths were already supported, I just forgot out it worked. (Eg. ../C64Music/DOCUMENTS/) 
+     Note the leading / for relative or \ for full paths is important because of reasons
+     
 v0.4
 - Seeking sort of enabled, it is probably a bit janky
 
