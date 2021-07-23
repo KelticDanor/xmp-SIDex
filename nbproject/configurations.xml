@@ -378,7 +378,7 @@
             <pElem>xmplay/xmpin.h</pElem>
             <pElem>xmplay/xmpfunc.h</pElem>
           </incFile>
-          <commandLine>-DHAVE_CONFIG_H</commandLine>
+          <commandLine>-DHAVE_CONFIG_H -DWIN32_LEAN_AND_MEAN -DNDEBUG -DVERSION=\"1.0-pre2\"</commandLine>
           <preprocessorList>
             <Elem>WIN32</Elem>
             <Elem>WINDOWS</Elem>

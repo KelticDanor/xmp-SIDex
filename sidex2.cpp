@@ -860,9 +860,9 @@ static bool applyConfig(bool initThis) {
     }
     float temp6581set = (float)std::stoi(sidSetting.c_6581filter) / 100;
     sidEngine.m_builder->filter6581Curve(temp6581set);
-    //float temp8580set = (float)std::stoi(sidSetting.c_8580filter) / 100;
-    //temp8580set = 25000*temp8580set;
-    //sidEngine.m_builder->filter8580Curve(12500);
+    float temp8580set = (float)std::stoi(sidSetting.c_8580filter) / 100;
+    temp8580set = 25000*temp8580set;
+    sidEngine.m_builder->filter8580Curve(temp8580set);
     
     // apply config
     sidEngine.m_config.sidEmulation = sidEngine.m_builder;
@@ -945,7 +945,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.6a)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.6b)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1475,7 +1475,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.6a)",
+    "SIDex (v0.6b)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
