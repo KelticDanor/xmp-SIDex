@@ -81,6 +81,7 @@ OBJECTFILES= \
 	${OBJECTDIR}/libsidplayfp/src/sidtune/p00.o \
 	${OBJECTDIR}/libsidplayfp/src/sidtune/prg.o \
 	${OBJECTDIR}/libsidplayfp/src/utils/MD5/MD5.o \
+	${OBJECTDIR}/libsidplayfp/src/utils/STILview/stil.o \
 	${OBJECTDIR}/libsidplayfp/src/utils/SidDatabase.o \
 	${OBJECTDIR}/libsidplayfp/src/utils/iniParser.o \
 	${OBJECTDIR}/libsidplayfp/src/utils/md5Factory.o \
@@ -340,6 +341,11 @@ ${OBJECTDIR}/libsidplayfp/src/utils/MD5/MD5.o: libsidplayfp/src/utils/MD5/MD5.cp
 	${MKDIR} -p ${OBJECTDIR}/libsidplayfp/src/utils/MD5
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -w -DWIN32 -DWINDOWS -Ixmplay -Ilibsidplayfp/src -Ilibsidplayfp/src/builders/residfp-builder -Ilibsidplayfp/src/builders/residfp-builder/residfp -include xmplay/xmpin.h -include xmplay/xmpfunc.h -std=c++11  -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/libsidplayfp/src/utils/MD5/MD5.o libsidplayfp/src/utils/MD5/MD5.cpp
+
+${OBJECTDIR}/libsidplayfp/src/utils/STILview/stil.o: libsidplayfp/src/utils/STILview/stil.cpp
+	${MKDIR} -p ${OBJECTDIR}/libsidplayfp/src/utils/STILview
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -w -DWIN32 -DWINDOWS -Ixmplay -Ilibsidplayfp/src -Ilibsidplayfp/src/builders/residfp-builder -Ilibsidplayfp/src/builders/residfp-builder/residfp -include xmplay/xmpin.h -include xmplay/xmpfunc.h -std=c++11  -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/libsidplayfp/src/utils/STILview/stil.o libsidplayfp/src/utils/STILview/stil.cpp
 
 ${OBJECTDIR}/libsidplayfp/src/utils/SidDatabase.o: libsidplayfp/src/utils/SidDatabase.cpp
 	${MKDIR} -p ${OBJECTDIR}/libsidplayfp/src/utils

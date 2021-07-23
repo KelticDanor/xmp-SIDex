@@ -10,6 +10,7 @@ static XMPFUNC_REGISTRY *xmpfreg;
 
 #include "configdialog.h"
 #include "utils/SidDatabase.h"
+#include "utils/STILview/stil.h"
 #include <builders/residfp-builder/residfp.h>
 #include <sidplayfp/SidInfo.h>
 #include <sidplayfp/SidTune.h>
@@ -691,8 +692,10 @@ typedef struct
     SidTune* p_song;
     SidConfig m_config;
     SidDatabase d_songdbase;
+    STIL d_stilbase;
     XMPFILE xmpfile;
     bool d_loadeddbase;
+    bool d_loadedstil;
     const SidTuneInfo* p_songinfo;
     int p_songcount;
     int p_subsong;
@@ -703,7 +706,8 @@ typedef struct
     const char* p_songtitle;
     const char* p_songartist;
     const char* p_songreleased;
-    short* m_sidbuffer;
+    char* p_sidmodel;
+    char* p_clockspeed;
     bool b_loaded;
 } SIDengine;
 static SIDengine sidEngine;
@@ -726,13 +730,15 @@ typedef struct
 {
     char c_sidmodel[10];
     char c_clockspeed[10];
-    char c_frequency[10];
     char c_core[10];
-    char c_channels[10];
     char c_defaultlength[10];
+    char c_6581filter[10];
+    char c_8580filter[10];
     char c_dbpath[250];
     bool c_locksidmodel;
     bool c_lockclockspeed;
+    bool c_enablefilter;
+    bool c_enabledigiboost;
 } SIDsetting;
 static SIDsetting sidSetting;
 
@@ -746,115 +752,92 @@ static const char* simpleFormat(const char* songFormat) {
         return songFormat;
     }
 }
-static const char* simpleLength(int songLength) {
+static const char* simpleLength(int songLength, char *buf) {
     int rsSecond = songLength;
     int rsMinute = songLength / 60;
     int rsHour = rsMinute / 60;
 
-    std::string niceLength;
     if (rsHour > 0) {
-        std::stringstream dtSecond;
-        std::stringstream dtMinute;
-        std::stringstream dtHour;
-        dtSecond << std::setfill('0') << std::setw(2) << (rsSecond%60);
-        dtMinute << std::setfill('0') << std::setw(2) << (rsMinute%60);
-        dtHour << rsHour;
-        niceLength.append(dtHour.str());
-        niceLength.append(":");
-        niceLength.append(dtMinute.str());
-        niceLength.append(":");
-        niceLength.append(dtSecond.str());
+        sprintf(buf, "%u:%02u:%02u", rsHour, rsMinute % 60, rsSecond % 60);
     } else {
-        std::stringstream dtSecond;
-        std::stringstream dtMinute;
-        dtSecond << std::setfill('0') << std::setw(2) << (rsSecond%60);
-        dtMinute << (rsMinute%60);
-        niceLength.append(dtMinute.str());
-        niceLength.append(":");
-        niceLength.append(dtSecond.str());
+        sprintf(buf, "%02u:%02u", rsMinute, rsSecond % 60);
     }
-    return niceLength.c_str();
+    return buf;
 }
 static void loadConfig()
 {
     if (!sidEngine.b_loaded) {
-        if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) == 0) {
-            std::string dfSidmodel = "6581";
-            for(int i = 0; i < dfSidmodel.length(); ++i){
-                sidSetting.c_sidmodel[i] = dfSidmodel[i];
+        strcpy(sidSetting.c_sidmodel, "6581");
+        strcpy(sidSetting.c_defaultlength, "120");
+        strcpy(sidSetting.c_6581filter, "25");
+        strcpy(sidSetting.c_8580filter, "50");
+        strcpy(sidSetting.c_clockspeed, "PAL");
+        strcpy(sidSetting.c_core, "ReSIDfp");
+        strcpy(sidSetting.c_dbpath, "");
+        sidSetting.c_lockclockspeed = FALSE;
+        sidSetting.c_locksidmodel = FALSE;
+        sidSetting.c_enabledigiboost = FALSE;
+        sidSetting.c_enablefilter = TRUE;
+        
+        if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
+            xmpfreg->GetString("SIDex","c_defaultlength",sidSetting.c_defaultlength,10);
+            xmpfreg->GetString("SIDex","c_6581filter",sidSetting.c_6581filter,10);
+            xmpfreg->GetString("SIDex","c_8580filter",sidSetting.c_8580filter,10);
+            xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
+            xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250);
+            
+            char boolCheck[10];
+            xmpfreg->GetString("SIDex","c_lockclockspeed",boolCheck,10);
+            if (boolCheck[0] == '0') {
+                sidSetting.c_lockclockspeed = FALSE;
+            } else if (boolCheck[0] == '1') {
+                sidSetting.c_lockclockspeed = TRUE;
             }
-        }
-        if (xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10) == 0) {
-            std::string dfClockspeed = "PAL";
-            for(int i = 0; i < dfClockspeed.length(); ++i){
-                sidSetting.c_clockspeed[i] = dfClockspeed[i];
+            xmpfreg->GetString("SIDex","c_locksidmodel",boolCheck,10);
+            if (boolCheck[0] == '0') {
+                sidSetting.c_locksidmodel = FALSE;
+            } else if (boolCheck[0] == '1') {
+                sidSetting.c_locksidmodel = TRUE;
             }
-        }
-        if (xmpfreg->GetString("SIDex","c_frequency",sidSetting.c_frequency,10) == 0) {
-            std::string dfFrequency = "44100";
-            for(int i = 0; i < dfFrequency.length(); ++i){
-                sidSetting.c_frequency[i] = dfFrequency[i];
+            xmpfreg->GetString("SIDex","c_enabledigiboost",boolCheck,10);
+            if (boolCheck[0] == '0') {
+                sidSetting.c_enabledigiboost = FALSE;
+            } else if (boolCheck[0] == '1') {
+                sidSetting.c_enabledigiboost = TRUE;
             }
-        }
-        if (xmpfreg->GetString("SIDex","c_core",sidSetting.c_core,10) == 0) {
-            std::string dfCore = "ReSIDfp";
-            for(int i = 0; i < dfCore.length(); ++i){
-                sidSetting.c_core[i] = dfCore[i];
+            xmpfreg->GetString("SIDex","c_enablefilter",boolCheck,10);
+            if (boolCheck[0] == '0') {
+                sidSetting.c_enablefilter = FALSE;
+            } else if (boolCheck[0] == '1') {
+                sidSetting.c_enablefilter = TRUE;
             }
-        }
-        if (xmpfreg->GetString("SIDex","c_channels",sidSetting.c_channels,10) == 0) {
-            std::string dfChannels = "Stereo";
-            for(int i = 0; i < dfChannels.length(); ++i){
-                sidSetting.c_channels[i] = dfChannels[i];
-            }
-        }
-        if (xmpfreg->GetString("SIDex","c_defaultlength",sidSetting.c_defaultlength,10) == 0) {
-            std::string dfDefaultlength = "120";
-            for(int i = 0; i < dfDefaultlength.length(); ++i){
-                sidSetting.c_defaultlength[i] = dfDefaultlength[i];
-            }
-        }
-        if (xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250) == 0) {
-            std::string dfDefaultlength = "120";
-            for(int i = 0; i < dfDefaultlength.length(); ++i){
-                sidSetting.c_defaultlength[i] = dfDefaultlength[i];
-            }
-        }
-        char boolCheck[10];
-        if (xmpfreg->GetString("SIDex","c_lockclockspeed",boolCheck,10) == 0) {
-            sidSetting.c_lockclockspeed = FALSE;
-        } else if (boolCheck[0] == '1') {
-            sidSetting.c_lockclockspeed = TRUE;
-        }
-        if (xmpfreg->GetString("SIDex","c_locksidmodel",boolCheck,10) == 0) {
-            sidSetting.c_locksidmodel = FALSE;
-        } else if (boolCheck[0] == '1') {
-            sidSetting.c_locksidmodel = TRUE;
         }
     }
 }
 static bool applyConfig(bool initThis) {
     if (initThis) {
         sidEngine.m_config = sidEngine.m_engine->config();
+        
+        // apply sid model
+        if (std::string(sidSetting.c_sidmodel).find("6581") != std::string::npos) {
+            sidEngine.m_config.defaultSidModel = SidConfig::MOS6581;
+        } else if (std::string(sidSetting.c_sidmodel).find("8580") != std::string::npos) {
+            sidEngine.m_config.defaultSidModel = SidConfig::MOS8580;
+        }
+        
+        // apply clock speed
+        if (std::string(sidSetting.c_clockspeed).find("PAL") != std::string::npos) {
+            sidEngine.m_config.defaultC64Model = SidConfig::PAL;
+        } else if (std::string(sidSetting.c_clockspeed).find("NTSC") != std::string::npos) {
+            sidEngine.m_config.defaultC64Model = SidConfig::NTSC;
+        }
     }
     
-    // apply sid model and lock
-    if (std::string(sidSetting.c_sidmodel).find("6581") != std::string::npos) {
-        sidEngine.m_config.defaultSidModel = SidConfig::MOS6581;
-    } else if (std::string(sidSetting.c_sidmodel).find("8580") != std::string::npos) {
-        sidEngine.m_config.defaultSidModel = SidConfig::MOS8580;
-    }
+    // apply sid model & clock speed lock
     if (sidSetting.c_locksidmodel) {
         sidEngine.m_config.forceSidModel = TRUE;
     } else {
         sidEngine.m_config.forceSidModel = FALSE;
-    }
-    
-    // apply clock speed and lock
-    if (std::string(sidSetting.c_clockspeed).find("PAL") != std::string::npos) {
-        sidEngine.m_config.defaultC64Model = SidConfig::PAL;
-    } else if (std::string(sidSetting.c_clockspeed).find("NTSC") != std::string::npos) {
-        sidEngine.m_config.defaultC64Model = SidConfig::NTSC;
     }
     if (sidSetting.c_lockclockspeed) {
         sidEngine.m_config.forceC64Model = TRUE;
@@ -862,25 +845,22 @@ static bool applyConfig(bool initThis) {
         sidEngine.m_config.forceC64Model = FALSE;
     }
     
-    if (initThis) {
-        // apply frequency
-        if (std::string(sidSetting.c_frequency).find("11025") != std::string::npos) {
-            sidEngine.m_config.frequency = 11025;
-        } else if (std::string(sidSetting.c_frequency).find("22050") != std::string::npos) {
-            sidEngine.m_config.frequency = 22050;
-        } else if (std::string(sidSetting.c_frequency).find("44100") != std::string::npos) {
-            sidEngine.m_config.frequency = 44100;
-        } else if (std::string(sidSetting.c_frequency).find("48000") != std::string::npos) {
-            sidEngine.m_config.frequency = 48000;
-        }
-        
-        // apply channels
-        if (std::string(sidSetting.c_channels).find("Stereo") != std::string::npos) {
-            sidEngine.m_config.playback = SidConfig::STEREO;
-        } else {
-            sidEngine.m_config.playback = SidConfig::MONO;
-        }
+    // apply digi boost
+    if (sidSetting.c_enabledigiboost) {
+        sidEngine.m_config.digiBoost = TRUE;
+    } else {
+        sidEngine.m_config.digiBoost = FALSE;
     }
+    
+    // apply filter status & levels
+    if (sidSetting.c_enablefilter) {
+        sidEngine.m_builder->filter(TRUE);
+    } else {
+        sidEngine.m_builder->filter(FALSE);
+    }
+    float temp6581set = (float)std::stoi(sidSetting.c_6581filter) / 100;
+    sidEngine.m_builder->filter6581Curve(temp6581set);
+    //sidEngine.m_builder->filter8580Curve(12500);
     
     // apply config
     sidEngine.m_config.sidEmulation = sidEngine.m_builder;
@@ -894,9 +874,9 @@ static void saveConfig()
 {
     xmpfreg->SetString("SIDex","c_sidmodel",sidSetting.c_sidmodel);
     xmpfreg->SetString("SIDex","c_clockspeed",sidSetting.c_clockspeed);
-    xmpfreg->SetString("SIDex","c_frequency",sidSetting.c_frequency);
     xmpfreg->SetString("SIDex","c_core",sidSetting.c_core);
-    xmpfreg->SetString("SIDex","c_channels",sidSetting.c_channels);
+    xmpfreg->SetString("SIDex","c_6581filter",sidSetting.c_6581filter);
+    xmpfreg->SetString("SIDex","c_8580filter",sidSetting.c_8580filter);
     xmpfreg->SetString("SIDex","c_defaultlength",sidSetting.c_defaultlength);
     xmpfreg->SetString("SIDex","c_dbpath",sidSetting.c_dbpath);
     if (sidSetting.c_lockclockspeed) {
@@ -908,6 +888,16 @@ static void saveConfig()
         xmpfreg->SetString("SIDex","c_locksidmodel","1");
     } else {
         xmpfreg->SetString("SIDex","c_locksidmodel","0");
+    }
+    if (sidSetting.c_enablefilter) {
+        xmpfreg->SetString("SIDex","c_enablefilter","1");
+    } else {
+        xmpfreg->SetString("SIDex","c_enablefilter","0");
+    }
+    if (sidSetting.c_enabledigiboost) {
+        xmpfreg->SetString("SIDex","c_enabledigiboost","1");
+    } else {
+        xmpfreg->SetString("SIDex","c_enabledigiboost","0");
     }
     
     if (sidEngine.b_loaded) {
@@ -925,9 +915,6 @@ static void WINAPI SIDex_Init()
         sidEngine.m_engine->setRoms(kernel, basic, chargen);
         sidEngine.m_builder = new ReSIDfpBuilder("ReSIDfp");
         sidEngine.m_builder->create(sidEngine.m_engine->info().maxsids());
-        //sidEngine.m_builder->filter(TRUE);
-        //sidEngine.m_builder->filter6581Curve(0.5);
-        //sidEngine.m_builder->filter8580Curve(12500);
         if (!sidEngine.m_builder->getStatus()) {
             delete sidEngine.m_engine;
             sidEngine.b_loaded = FALSE;
@@ -956,7 +943,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.4)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.5)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -978,6 +965,8 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
         sidLookup.p_songtitle = sidLookup.p_songinfo->infoString(0);
         sidLookup.p_songartist = sidLookup.p_songinfo->infoString(1);
         sidLookup.p_songreleased = sidLookup.p_songinfo->infoString(2);
+            sidLookup.p_songtitle = xmpftext->Utf8(sidLookup.p_songtitle,strlen(sidLookup.p_songtitle));
+            sidLookup.p_songartist = xmpftext->Utf8(sidLookup.p_songartist,strlen(sidLookup.p_songartist));
         
         // load lengths
         if (!sidEngine.d_loadeddbase) {
@@ -996,7 +985,6 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
                     defaultduration = md5duration;
                 }
             }
-            delete md5;
             
             sidLookup.p_subsonglength[si] = defaultduration;
             sidLookup.p_songlength += defaultduration;
@@ -1074,30 +1062,66 @@ static char * WINAPI SIDex_GetTags()
 static void WINAPI SIDex_GetInfoText(char *format, char *length)
 {
     if (format) {
-        format+=sprintf(format,simpleFormat(sidEngine.p_songformat));
+        strcpy(format, simpleFormat(sidEngine.p_songformat));
     }
     if(length) {
-        length += sprintf(length, simpleLength(sidEngine.p_subsonglength[sidEngine.p_subsong]));
-        length += sprintf(length, " - ");
-        length += sprintf(length, sidSetting.c_sidmodel);
-        length += sprintf(length, " ");
-        length += sprintf(length, sidSetting.c_clockspeed);
+        if (length[0]) // got length text in the buffer, append to it
+            sprintf(length + strlen(length), " - %s - %s", sidEngine.p_sidmodel, sidEngine.p_clockspeed);
+        else
+            sprintf(length, "%s - %s", sidEngine.p_sidmodel, sidEngine.p_clockspeed);
     }
 }
 static void WINAPI SIDex_GetGeneralInfo(char *buf)
 {
+    static char temp[32]; // buffer for simpleLength
+
     buf += sprintf(buf, "%s\t%s\r", "Format", sidEngine.p_songformat);
     
-    for (int si=1;si<=sidEngine.p_songcount; si++) {
-        if (si==1) {
-            buf += sprintf(buf, "%s\t%d. %s\r", "Subsongs", si, simpleLength(sidEngine.p_subsonglength[si]));
-        } else {
-            buf += sprintf(buf, "%s\t%d. %s\r", "", si, simpleLength(sidEngine.p_subsonglength[si]));
+    if (sidEngine.p_songcount > 1) { // only display subsong info if there are more than 1
+        buf += sprintf(buf, "Subsongs");
+        for (int si = 1; si <= sidEngine.p_songcount; si++) {
+            buf += sprintf(buf, "\t%d. %s\r", si, simpleLength(sidEngine.p_subsonglength[si], temp));
         }
     }
     
-    buf += sprintf(buf, "%s\t%s\r", "Length", simpleLength(sidEngine.p_songlength));
+    buf += sprintf(buf, "%s\t%s\r", "Length", simpleLength(sidEngine.p_songlength, temp));
     buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.2.0");
+}
+static void WINAPI SIDex_GetSamples(char *buf)
+{
+    if (sidEngine.d_loadedstil) {
+        const char * stilComment;
+        const char * stilEntry;
+        const char * stilBug;
+        std::string searchPath;
+            searchPath.append(sidEngine.p_songinfo->path());
+            searchPath.append(sidEngine.p_songinfo->dataFileName());
+        stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
+        stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),sidEngine.p_subsong,STIL::all);
+        stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
+        
+        if (stilComment != NULL) {
+            //std::ofstream outfile1 ("stilcomment.txt", std::ios_base::app);
+            //outfile1 << stilComment << std::endl;
+            //outfile1.close();
+            stilComment = xmpftext->Utf8(stilComment,strlen(stilComment));
+            buf += sprintf(buf, "%s\t%s\r", "STILcomment", stilComment);
+        }
+        if (stilEntry != NULL) {
+            //std::ofstream outfile2 ("stilentry.txt", std::ios_base::app);
+            //outfile2 << stilEntry << std::endl;
+            //outfile2.close();
+            stilEntry = xmpftext->Utf8(stilEntry,strlen(stilEntry));
+            buf += sprintf(buf, "%s\t%s\r", "STILentry", stilEntry);
+        }
+        if (stilBug != NULL) {
+            //std::ofstream outfile3 ("stilbug.txt", std::ios_base::app);
+            //outfile3 << stilBug << std::endl;
+            //outfile3.close();
+            stilBug = xmpftext->Utf8(stilBug,strlen(stilBug));
+            buf += sprintf(buf, "%s\t%s\r", "STILbug", stilBug);
+        }
+    }
 }
 
 // handle playback
@@ -1107,20 +1131,50 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
     if (sidEngine.b_loaded) {
         sidEngine.p_song = new SidTune(filename);
         if (!sidEngine.p_song->getStatus()) {
-            return NULL;
+            return 0;
         } else {
             sidEngine.p_songinfo = sidEngine.p_song->getInfo();
             sidEngine.p_songcount = sidEngine.p_songinfo->songs();
             sidEngine.p_songformat = sidEngine.p_songinfo->formatString();
             sidEngine.p_songtitle = sidEngine.p_songinfo->infoString(0);
             sidEngine.p_songartist = sidEngine.p_songinfo->infoString(1);
+                sidEngine.p_songtitle = xmpftext->Utf8(sidEngine.p_songtitle,strlen(sidEngine.p_songtitle));
+                sidEngine.p_songartist = xmpftext->Utf8(sidEngine.p_songartist,strlen(sidEngine.p_songartist));
             sidEngine.p_songreleased = sidEngine.p_songinfo->infoString(2);
             sidEngine.p_subsong = 1;
             sidEngine.p_song->selectSong(sidEngine.p_subsong);
 
+            // Figure out sid model and clock speed
+            if (sidSetting.c_locksidmodel || sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_ANY || sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_UNKNOWN) {
+                sidEngine.p_sidmodel = sidSetting.c_sidmodel;
+            } else if (sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_6581) {
+                sidEngine.p_sidmodel = "6581";
+            } else if (sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_8580) {
+                sidEngine.p_sidmodel = "8580";
+            }
+            if (sidSetting.c_lockclockspeed || sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_ANY || sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_UNKNOWN) {
+                sidEngine.p_clockspeed = sidSetting.c_clockspeed;
+            } else if (sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_PAL) {
+                sidEngine.p_clockspeed = "PAL";
+            } else if (sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_NTSC) {
+                sidEngine.p_clockspeed = "NTSC";
+            }
+            
+            // Load STIL database
+            if (!sidEngine.d_loadedstil) {
+                std::string relpathName = sidSetting.c_dbpath;
+                relpathName.replace((relpathName.length()-10), 10, "");
+                char abspathName[_MAX_PATH];
+                if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
+                    sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
+                }
+            }
+            
             // load lengths
             if (!sidEngine.d_loadeddbase) {
-                sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(sidSetting.c_dbpath);
+                std::string relpathName = sidSetting.c_dbpath;
+                relpathName.append("Songlengths.md5");
+                sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
             }
             sidEngine.p_subsonglength = new int [sidEngine.p_songcount + 1];
             sidEngine.p_songlength = 0;
@@ -1135,22 +1189,25 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
                         defaultduration = md5duration;
                     }
                 }
-                delete md5;
 
                 sidEngine.p_subsonglength[si] = defaultduration;
                 sidEngine.p_songlength += defaultduration;
             }
 
             if (sidEngine.m_engine->load(sidEngine.p_song)) {
-                xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
+                if (std::stoi(sidSetting.c_defaultlength) == 0) {
+                    xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
+                } else {
+                    xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
+                }
                 sidEngine.xmpfile = file;
                 return 2;
             } else {
-                return NULL;
+                return 0;
             }
         }
     } else {
-        return NULL;
+        return 0;
     }
 }
 static void WINAPI SIDex_Close()
@@ -1166,43 +1223,34 @@ static void WINAPI SIDex_Close()
 static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
 {
     sidEngine.p_songpos = sidEngine.m_engine->time();
-    if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong]) {
+    if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong] || std::stoi(sidSetting.c_defaultlength) == 0) {
         int sidDone,i;
-        sidEngine.m_sidbuffer = new short [count];
-        sidDone = sidEngine.m_engine->play((int16_t*)sidEngine.m_sidbuffer, count);
+        short *sidbuffer = new short [count];
+        sidDone = sidEngine.m_engine->play(sidbuffer, count);
         for (i=0;i<sidDone;i++) {
-            buffer[i] = (float)(sidEngine.m_sidbuffer[i])/32768.f;
+            buffer[i] = (float)(sidbuffer[i])/32768.f;
         }
-        delete sidEngine.m_sidbuffer;
+        delete sidbuffer;
 
         sidEngine.p_songpos = sidEngine.m_engine->time();
-        
+
         return sidDone;
     } else {
-        return NULL;
+        return 0;
     }
 }
 static void WINAPI SIDex_SetFormat(XMPFORMAT *form)
 {
+    // changing format seems to rewind the SID decoder? so only do that at start
+    if (!sidEngine.m_engine->timeMs()) {
+        sidEngine.m_config = sidEngine.m_engine->config();
+        sidEngine.m_config.frequency = std::max<DWORD>(form->rate, 8000);
+        sidEngine.m_config.playback = (SidConfig::playback_t)std::min<DWORD>(form->chan, 2);
+        sidEngine.m_engine->config(sidEngine.m_config);
+    }
+    form->rate = sidEngine.m_config.frequency;
+    form->chan = sidEngine.m_config.playback;
     form->res = 16 / 8;
-    
-    // apply frequency
-    if (std::string(sidSetting.c_frequency).find("11025") != std::string::npos) {
-        form->rate = 11025;
-    } else if (std::string(sidSetting.c_frequency).find("22050") != std::string::npos) {
-        form->rate = 22050;
-    } else if (std::string(sidSetting.c_frequency).find("44100") != std::string::npos) {
-        form->rate = 44100;
-    } else if (std::string(sidSetting.c_frequency).find("48000") != std::string::npos) {
-        form->rate = 48000;
-    }
-    
-    // apply channels
-    if (std::string(sidSetting.c_channels).find("Stereo") != std::string::npos) {
-        form->chan = 2;
-    } else {
-        form->chan = 1;
-    }
 }
 static double WINAPI SIDex_GetGranularity()
 {
@@ -1210,23 +1258,27 @@ static double WINAPI SIDex_GetGranularity()
 }
 static double WINAPI SIDex_SetPosition(DWORD pos)
 {
-    if (pos &  XMPIN_POS_SUBSONG1 || pos & XMPIN_POS_SUBSONG) {
+    if (pos & XMPIN_POS_SUBSONG1 || pos & XMPIN_POS_SUBSONG) {
         if (sidEngine.m_engine->isPlaying()) {
             sidEngine.m_engine->stop();
         }
-        sidEngine.p_subsong = LOWORD(pos)+1;
+        sidEngine.p_subsong = LOWORD(pos) + 1;
         sidEngine.p_song->selectSong(sidEngine.p_subsong);
         sidEngine.m_engine->load(sidEngine.p_song);
         //
-        xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
+        if (std::stoi(sidSetting.c_defaultlength) == 0) {
+            xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
+        } else {
+            xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
+        }
         xmpfin->UpdateTitle(NULL);
         //
         return 0;
-    } else if (pos) {
-        int seekTarget=pos*SIDex_GetGranularity();
-        int seekState=sidEngine.m_engine->time();
+    } else {
+        int seekTarget = pos * SIDex_GetGranularity();
+        int seekState = sidEngine.m_engine->time();
         int seekResult;
-        
+
         //oh dear we have to go back
         if (seekTarget <= seekState) {
             if (sidEngine.m_engine->isPlaying()) {
@@ -1236,10 +1288,10 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
             seekState = 0;
             seekTarget += 1;
         }
-        
+
         //attempt to seek
-        int seekCount=((seekTarget-seekState) * std::stoi(sidSetting.c_frequency))*2;
-        short * seekBuffer = new short [seekCount];
+        int seekCount = ((seekTarget - seekState) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
+        short * seekBuffer = new short[seekCount];
         seekResult = sidEngine.m_engine->play(seekBuffer, seekCount);
         delete seekBuffer;
         if (seekResult == seekCount) {
@@ -1247,8 +1299,6 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
         } else {
             return -1;
         }
-    } else {
-        return -1;
     }
 }
 
@@ -1262,11 +1312,13 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                 case IDOK:
                     sidSetting.c_locksidmodel = (BST_CHECKED==MESS(IDC_CHECK_LOCKSID, BM_GETCHECK, 0, 0));
                     sidSetting.c_lockclockspeed = (BST_CHECKED==MESS(IDC_CHECK_LOCKCLOCK, BM_GETCHECK, 0, 0));
+                    sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
+                    sidSetting.c_enablefilter = (BST_CHECKED==MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0));
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
                     MESS(IDC_COMBO_CORE, WM_GETTEXT, 10, sidSetting.c_core);
-                    MESS(IDC_COMBO_FREQUENCY, WM_GETTEXT, 10, sidSetting.c_frequency);
-                    MESS(IDC_COMBO_CHANNELS, WM_GETTEXT, 10, sidSetting.c_channels);
+                    MESS(IDC_COMBO_6581LEVEL, WM_GETTEXT, 10, sidSetting.c_6581filter);
+                    MESS(IDC_COMBO_8580LEVEL, WM_GETTEXT, 10, sidSetting.c_8580filter);
                     MESS(IDC_EDIT_DEFAULTLENGTH, WM_GETTEXT, 10, sidSetting.c_defaultlength);
                     MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
                     
@@ -1289,19 +1341,25 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             HWND szCore = GetDlgItem(hWnd, IDC_COMBO_CORE);
             SendMessage(szCore, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("ReSIDfp"));
             SendMessage(szCore, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_core);
-            HWND szFrequency = GetDlgItem(hWnd, IDC_COMBO_FREQUENCY);
-            SendMessage(szFrequency, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("48000"));
-            SendMessage(szFrequency, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("44100"));
-            SendMessage(szFrequency, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("22050"));
-            SendMessage(szFrequency, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("11025"));
-            SendMessage(szFrequency, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_frequency);
-            HWND szChannels = GetDlgItem(hWnd, IDC_COMBO_CHANNELS);
-            SendMessage(szChannels, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Mono"));
-            SendMessage(szChannels, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Stereo"));
-            SendMessage(szChannels, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_channels);
+            HWND sz6581filter = GetDlgItem(hWnd, IDC_COMBO_6581LEVEL);
+            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("0"));
+            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("25"));
+            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("50"));
+            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("75"));
+            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("100"));
+            SendMessage(sz6581filter, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_6581filter);
+            HWND sz8580filter = GetDlgItem(hWnd, IDC_COMBO_8580LEVEL);
+            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("0"));
+            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("25"));
+            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("50"));
+            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("75"));
+            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("100"));
+            SendMessage(sz8580filter, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_8580filter);
             //
             MESS(IDC_CHECK_LOCKSID, BM_SETCHECK, sidSetting.c_locksidmodel?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_LOCKCLOCK, BM_SETCHECK, sidSetting.c_lockclockspeed?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_ENABLEFILTER, BM_SETCHECK, sidSetting.c_enablefilter?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_DIGIBOOST, BM_SETCHECK, sidSetting.c_enabledigiboost?BST_CHECKED:BST_UNCHECKED, 0);
             SetDlgItemText(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength);
             SetDlgItemText(hWnd, IDC_EDIT_DBPATH, sidSetting.c_dbpath);
             return TRUE;
@@ -1316,7 +1374,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.4)",
+    "SIDex (v0.5)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
@@ -1335,7 +1393,7 @@ static XMPIN xmpin={
     NULL, // SIDex_GetBuffering
     SIDex_Process,
     NULL, // WriteFile
-    NULL, // GetSamples
+    SIDex_GetSamples, // GetSamples
     SIDex_GetSubSongs, // GetSubSongs
     NULL, // reserved3
     NULL, // GetDownloaded

@@ -65,6 +65,7 @@
       <itemPath>libsidplayfp/src/sidemu.cpp</itemPath>
       <itemPath>sidex2.cpp</itemPath>
       <itemPath>libsidplayfp/src/sidplayfp/sidplayfp.cpp</itemPath>
+      <itemPath>libsidplayfp/src/utils/STILview/stil.cpp</itemPath>
       <itemPath>libsidplayfp/src/c64/CIA/timer.cpp</itemPath>
       <itemPath>libsidplayfp/src/c64/CIA/tod.cpp</itemPath>
       <itemPath>xmplay/xmpin.def</itemPath>
@@ -323,6 +324,11 @@
       <item path="libsidplayfp/src/sidtune/prg.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="libsidplayfp/src/utils/MD5/MD5.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/STILview/stil.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
       </item>
       <item path="libsidplayfp/src/utils/SidDatabase.cpp"
             ex="false"
@@ -585,6 +591,11 @@
       <item path="libsidplayfp/src/sidtune/prg.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="libsidplayfp/src/utils/MD5/MD5.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="libsidplayfp/src/utils/STILview/stil.cpp"
+            ex="false"
+            tool="1"
+            flavor2="0">
       </item>
       <item path="libsidplayfp/src/utils/SidDatabase.cpp"
             ex="false"
