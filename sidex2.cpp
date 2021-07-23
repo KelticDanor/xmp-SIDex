@@ -945,7 +945,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.6)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.6a)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1091,7 +1091,7 @@ static void WINAPI SIDex_GetGeneralInfo(char *buf)
     }
     
     buf += sprintf(buf, "%s\t%s\r", "Length", simpleLength(sidEngine.p_songlength, temp));
-    buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.2.0");
+    buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.2.1");
 }
 // trim from both ends
 static inline std::string &trim(std::string &s) {
@@ -1475,7 +1475,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.6)",
+    "SIDex (v0.6a)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,

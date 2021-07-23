@@ -378,6 +378,7 @@
             <pElem>xmplay/xmpin.h</pElem>
             <pElem>xmplay/xmpfunc.h</pElem>
           </incFile>
+          <commandLine>-DHAVE_CONFIG_H</commandLine>
           <preprocessorList>
             <Elem>WIN32</Elem>
             <Elem>WINDOWS</Elem>
