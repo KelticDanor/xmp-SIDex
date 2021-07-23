@@ -860,6 +860,8 @@ static bool applyConfig(bool initThis) {
     }
     float temp6581set = (float)std::stoi(sidSetting.c_6581filter) / 100;
     sidEngine.m_builder->filter6581Curve(temp6581set);
+    //float temp8580set = (float)std::stoi(sidSetting.c_8580filter) / 100;
+    //temp8580set = 25000*temp8580set;
     //sidEngine.m_builder->filter8580Curve(12500);
     
     // apply config
@@ -943,7 +945,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.5)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.6)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.0.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -965,12 +967,18 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
         sidLookup.p_songtitle = sidLookup.p_songinfo->infoString(0);
         sidLookup.p_songartist = sidLookup.p_songinfo->infoString(1);
         sidLookup.p_songreleased = sidLookup.p_songinfo->infoString(2);
-            sidLookup.p_songtitle = xmpftext->Utf8(sidLookup.p_songtitle,strlen(sidLookup.p_songtitle));
-            sidLookup.p_songartist = xmpftext->Utf8(sidLookup.p_songartist,strlen(sidLookup.p_songartist));
+            if (strlen(sidLookup.p_songtitle)>0) {
+                sidLookup.p_songtitle = xmpftext->Utf8(sidLookup.p_songtitle,strlen(sidLookup.p_songtitle));
+            }
+            if (strlen(sidLookup.p_songartist)>0) {
+                sidLookup.p_songartist = xmpftext->Utf8(sidLookup.p_songartist,strlen(sidLookup.p_songartist));
+            }
         
         // load lengths
-        if (!sidEngine.d_loadeddbase) {
-            sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(sidSetting.c_dbpath);
+        if (!sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
+            std::string relpathName = sidSetting.c_dbpath;
+            relpathName.append("Songlengths.md5");
+            sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
         }
         sidLookup.p_subsonglength = new int [sidLookup.p_songcount + 1];
         sidLookup.p_songlength = 0;
@@ -991,25 +999,23 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
         }
         
         std::string taginfo;
-        //for (int si=1;si<= sidLookup.p_songcount; si++) {
-            taginfo.append("title");
-            taginfo.push_back('\0');
-            taginfo.append(sidLookup.p_songtitle);
-            taginfo.push_back('\0');
-            taginfo.append("artist");
-            taginfo.push_back('\0');
-            taginfo.append(sidLookup.p_songartist);
-            taginfo.push_back('\0');
-            taginfo.append("date");
-            taginfo.push_back('\0');
-            taginfo.append(sidLookup.p_songreleased);
-            taginfo.push_back('\0');
-            taginfo.append("filetype");
-            taginfo.push_back('\0');
-            taginfo.append(simpleFormat(sidLookup.p_songformat));
-            taginfo.push_back('\0');
-            taginfo.push_back('\0');
-        //}
+        taginfo.append("title");
+        taginfo.push_back('\0');
+        taginfo.append(sidLookup.p_songtitle);
+        taginfo.push_back('\0');
+        taginfo.append("artist");
+        taginfo.push_back('\0');
+        taginfo.append(sidLookup.p_songartist);
+        taginfo.push_back('\0');
+        taginfo.append("date");
+        taginfo.push_back('\0');
+        taginfo.append(sidLookup.p_songreleased);
+        taginfo.push_back('\0');
+        taginfo.append("filetype");
+        taginfo.push_back('\0');
+        taginfo.append(simpleFormat(sidLookup.p_songformat));
+        taginfo.push_back('\0');
+        taginfo.push_back('\0');
         if(length) {
             float *p = (float*)xmpfmisc->Alloc(sidLookup.p_songcount * sizeof(float));
             *length = p;
@@ -1087,13 +1093,22 @@ static void WINAPI SIDex_GetGeneralInfo(char *buf)
     buf += sprintf(buf, "%s\t%s\r", "Length", simpleLength(sidEngine.p_songlength, temp));
     buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.2.0");
 }
-static void WINAPI SIDex_GetSamples(char *buf)
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+static void WINAPI SIDex_GetMessage(char *buf)
 {
     if (sidEngine.d_loadedstil) {
         const char * stilComment;
         const char * stilEntry;
         const char * stilBug;
         std::string searchPath;
+        std::string stilOutput;
             searchPath.append(sidEngine.p_songinfo->path());
             searchPath.append(sidEngine.p_songinfo->dataFileName());
         stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
@@ -1101,25 +1116,76 @@ static void WINAPI SIDex_GetSamples(char *buf)
         stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
         
         if (stilComment != NULL) {
-            //std::ofstream outfile1 ("stilcomment.txt", std::ios_base::app);
-            //outfile1 << stilComment << std::endl;
-            //outfile1.close();
-            stilComment = xmpftext->Utf8(stilComment,strlen(stilComment));
-            buf += sprintf(buf, "%s\t%s\r", "STILcomment", stilComment);
+            buf += sprintf(buf, "STIL Global Comment\t\r");
+            buf += sprintf(buf, "-=-=-=-=-=-=-=-=-=-\r");
+            std::istringstream stilCommentstr(stilComment);
+            std::string labetTxt;
+            while (std::getline(stilCommentstr, stilOutput)) {
+                if (!stilOutput.empty()) {
+                    stilOutput = trim(stilOutput);
+                    labetTxt = "";
+                    if (stilOutput.find("COMMENT: ") != -1) {
+                        stilOutput.replace(stilOutput.find("COMMENT: "), 9, "");
+                        labetTxt = "Comment";
+                    }
+                    stilOutput = xmpftext->Utf8(stilOutput.c_str(),strlen(stilOutput.c_str()));
+                    buf += sprintf(buf, "%s\t%s\r", labetTxt.c_str(), stilOutput.c_str());
+                } else {
+                    break;
+                }
+            }
         }
         if (stilEntry != NULL) {
-            //std::ofstream outfile2 ("stilentry.txt", std::ios_base::app);
-            //outfile2 << stilEntry << std::endl;
-            //outfile2.close();
-            stilEntry = xmpftext->Utf8(stilEntry,strlen(stilEntry));
-            buf += sprintf(buf, "%s\t%s\r", "STILentry", stilEntry);
+            buf += sprintf(buf, "STIL Entry\t\r");
+            buf += sprintf(buf, "-=-=-=-=-=-=-=-=-=-\r");
+            std::istringstream stilEntrystr(stilEntry);
+            std::string labetTxt;
+            while (std::getline(stilEntrystr, stilOutput)) {
+                if (!stilOutput.empty()) {
+                    stilOutput = trim(stilOutput);
+                    labetTxt = "";
+                    if (stilOutput.find("COMMENT: ") != -1) {
+                        stilOutput.replace(stilOutput.find("COMMENT: "), 9, "");
+                        labetTxt = "Comment";
+                    } else if (stilOutput.find("AUTHOR: ") != -1) {
+                        stilOutput.replace(stilOutput.find("AUTHOR: "), 8, "");
+                        labetTxt = "Author";
+                    } else if (stilOutput.find("ARTIST: ") != -1) {
+                        stilOutput.replace(stilOutput.find("ARTIST: "), 8, "");
+                        labetTxt = "Artist";
+                    } else if (stilOutput.find("TITLE: ") != -1) {
+                        stilOutput.replace(stilOutput.find("TITLE: "), 7, "");
+                        labetTxt = "Title";
+                    } else if (stilOutput.find("NAME: ") != -1) {
+                        stilOutput.replace(stilOutput.find("NAME: "), 6, "");
+                        labetTxt = "Name";
+                    }
+                    stilOutput = xmpftext->Utf8(stilOutput.c_str(),strlen(stilOutput.c_str()));
+                    buf += sprintf(buf, "%s\t%s\r", labetTxt.c_str(), stilOutput.c_str());
+                } else {
+                    break;
+                }
+            }
         }
         if (stilBug != NULL) {
-            //std::ofstream outfile3 ("stilbug.txt", std::ios_base::app);
-            //outfile3 << stilBug << std::endl;
-            //outfile3.close();
-            stilBug = xmpftext->Utf8(stilBug,strlen(stilBug));
-            buf += sprintf(buf, "%s\t%s\r", "STILbug", stilBug);
+            buf += sprintf(buf, "STIL Bug\t\r");
+            buf += sprintf(buf, "-=-=-=-=-=-=-=-=-=-\r");
+            std::istringstream stilBugstr(stilBug);
+            std::string labetTxt;
+            while (std::getline(stilBugstr, stilOutput)) {
+                if (!stilOutput.empty()) {
+                    stilOutput = trim(stilOutput);
+                    labetTxt = "";
+                    if (stilOutput.find("BUG: ") != -1) {
+                        stilOutput.replace(stilOutput.find("BUG: "), 5, "");
+                        labetTxt = "Bug";
+                    }
+                    stilOutput = xmpftext->Utf8(stilOutput.c_str(),strlen(stilOutput.c_str()));
+                    buf += sprintf(buf, "%s\t%s\r", labetTxt.c_str(), stilOutput.c_str());
+                } else {
+                    break;
+                }
+            }
         }
     }
 }
@@ -1138,8 +1204,12 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             sidEngine.p_songformat = sidEngine.p_songinfo->formatString();
             sidEngine.p_songtitle = sidEngine.p_songinfo->infoString(0);
             sidEngine.p_songartist = sidEngine.p_songinfo->infoString(1);
+            if (strlen(sidEngine.p_songtitle)>0) {
                 sidEngine.p_songtitle = xmpftext->Utf8(sidEngine.p_songtitle,strlen(sidEngine.p_songtitle));
+            }
+            if (strlen(sidEngine.p_songartist)>0) {
                 sidEngine.p_songartist = xmpftext->Utf8(sidEngine.p_songartist,strlen(sidEngine.p_songartist));
+            }
             sidEngine.p_songreleased = sidEngine.p_songinfo->infoString(2);
             sidEngine.p_subsong = 1;
             sidEngine.p_song->selectSong(sidEngine.p_subsong);
@@ -1161,7 +1231,7 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             }
             
             // Load STIL database
-            if (!sidEngine.d_loadedstil) {
+            if (!sidEngine.d_loadedstil && strlen(sidSetting.c_dbpath)>10) {
                 std::string relpathName = sidSetting.c_dbpath;
                 relpathName.replace((relpathName.length()-10), 10, "");
                 char abspathName[_MAX_PATH];
@@ -1169,9 +1239,8 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
                     sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
                 }
             }
-            
             // load lengths
-            if (!sidEngine.d_loadeddbase) {
+            if (!sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
                 std::string relpathName = sidSetting.c_dbpath;
                 relpathName.append("Songlengths.md5");
                 sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
@@ -1374,7 +1443,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.5)",
+    "SIDex (v0.6)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
@@ -1387,13 +1456,13 @@ static XMPIN xmpin={
     SIDex_GetTags,
     SIDex_GetInfoText,
     SIDex_GetGeneralInfo,
-    NULL, // SIDex_GetMessage
+    SIDex_GetMessage,
     SIDex_SetPosition,
     SIDex_GetGranularity,
     NULL, // SIDex_GetBuffering
     SIDex_Process,
     NULL, // WriteFile
-    SIDex_GetSamples, // GetSamples
+    NULL, // GetSamples
     SIDex_GetSubSongs, // GetSubSongs
     NULL, // reserved3
     NULL, // GetDownloaded
