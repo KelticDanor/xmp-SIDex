@@ -14,7 +14,7 @@ v0.5
 - Main panel should correctly indicate tune sid model and clock speed now
 - Added [b]VERY[/b] rudimentary STIL support, might actually cause crashes so use with caution
 - Turns out relative/full paths were already supported, I just forgot out it worked. (Eg. ../C64Music/DOCUMENTS/) 
-     Note the leading / for relative or \ for full paths is important because of reasons
+     Note the trailing / for relative or \ for full paths is important because of reasons
      
 v0.4
 - Seeking sort of enabled, it is probably a bit janky
