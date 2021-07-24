@@ -724,7 +724,6 @@ typedef struct
     const char* p_songartist;
     const char* p_songreleased;
 } SIDlookup;
-static SIDlookup sidLookup;
 
 typedef struct
 {
@@ -945,7 +944,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.6b)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.6c)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -957,9 +956,11 @@ static BOOL WINAPI SIDex_CheckFile(const char *filename, XMPFILE file)
 }
 static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float **length, char **tags)
 {
+    SIDlookup sidLookup;
     sidLookup.p_song = new SidTune(filename);
     if (!sidLookup.p_song->getStatus()) {
-        return NULL;
+        delete sidLookup.p_song;
+        return 0;
     } else {
         sidLookup.p_songinfo = sidLookup.p_song->getInfo();
         sidLookup.p_songcount = sidLookup.p_songinfo->songs();
@@ -1029,6 +1030,11 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
             *tags = (char*)xmpfmisc->Alloc(tagsLength);
             memcpy(*tags, taginfo.data(), tagsLength);
         }
+
+        xmpfmisc->Free((void*)sidLookup.p_songtitle);
+        xmpfmisc->Free((void*)sidLookup.p_songartist);
+        delete sidLookup.p_subsonglength;
+        delete sidLookup.p_song;
 
         return sidLookup.p_songcount | XMPIN_INFO_NOSUBTAGS;
     }
@@ -1128,8 +1134,9 @@ static void WINAPI SIDex_GetMessage(char *buf)
                         stilOutput.replace(stilOutput.find("COMMENT: "), 9, "");
                         labetTxt = "Comment";
                     }
-                    stilOutput = xmpftext->Utf8(stilOutput.c_str(),strlen(stilOutput.c_str()));
-                    buf += sprintf(buf, "%s\t%s\r", labetTxt.c_str(), stilOutput.c_str());
+                    char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
+                    buf = xmpfmisc->FormatInfoText(buf, labetTxt.c_str(), value);
+                    xmpfmisc->Free(value);
                 } else {
                     break;
                 }
@@ -1160,8 +1167,9 @@ static void WINAPI SIDex_GetMessage(char *buf)
                         stilOutput.replace(stilOutput.find("NAME: "), 6, "");
                         labetTxt = "Name";
                     }
-                    stilOutput = xmpftext->Utf8(stilOutput.c_str(),strlen(stilOutput.c_str()));
-                    buf += sprintf(buf, "%s\t%s\r", labetTxt.c_str(), stilOutput.c_str());
+                    char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
+                    buf = xmpfmisc->FormatInfoText(buf, labetTxt.c_str(), value);
+                    xmpfmisc->Free(value);
                 } else {
                     break;
                 }
@@ -1180,8 +1188,9 @@ static void WINAPI SIDex_GetMessage(char *buf)
                         stilOutput.replace(stilOutput.find("BUG: "), 5, "");
                         labetTxt = "Bug";
                     }
-                    stilOutput = xmpftext->Utf8(stilOutput.c_str(),strlen(stilOutput.c_str()));
-                    buf += sprintf(buf, "%s\t%s\r", labetTxt.c_str(), stilOutput.c_str());
+                    char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
+                    buf = xmpfmisc->FormatInfoText(buf, labetTxt.c_str(), value);
+                    xmpfmisc->Free(value);
                 } else {
                     break;
                 }
@@ -1285,7 +1294,6 @@ static void WINAPI SIDex_Close()
         if (sidEngine.m_engine->isPlaying()) {
             sidEngine.m_engine->stop();
         }
-        delete sidLookup.p_subsonglength;
         delete sidEngine.p_song;
     }
 }
@@ -1475,7 +1483,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.6b)",
+    "SIDex (v0.6c)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
