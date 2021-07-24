@@ -729,7 +729,7 @@ typedef struct
 {
     char c_sidmodel[10];
     char c_clockspeed[10];
-    char c_core[10];
+    char c_powerdelay[10];
     char c_defaultlength[10];
     char c_6581filter[10];
     char c_8580filter[10];
@@ -738,6 +738,7 @@ typedef struct
     bool c_lockclockspeed;
     bool c_enablefilter;
     bool c_enabledigiboost;
+    bool c_powerdelayrandom;
 } SIDsetting;
 static SIDsetting sidSetting;
 
@@ -771,18 +772,20 @@ static void loadConfig()
         strcpy(sidSetting.c_6581filter, "25");
         strcpy(sidSetting.c_8580filter, "50");
         strcpy(sidSetting.c_clockspeed, "PAL");
-        strcpy(sidSetting.c_core, "ReSIDfp");
+        strcpy(sidSetting.c_powerdelay, "0");
         strcpy(sidSetting.c_dbpath, "");
         sidSetting.c_lockclockspeed = FALSE;
         sidSetting.c_locksidmodel = FALSE;
         sidSetting.c_enabledigiboost = FALSE;
         sidSetting.c_enablefilter = TRUE;
+        sidSetting.c_powerdelayrandom = FALSE;
         
         if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
             xmpfreg->GetString("SIDex","c_defaultlength",sidSetting.c_defaultlength,10);
             xmpfreg->GetString("SIDex","c_6581filter",sidSetting.c_6581filter,10);
             xmpfreg->GetString("SIDex","c_8580filter",sidSetting.c_8580filter,10);
             xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
+            xmpfreg->GetString("SIDex","c_powerdelay",sidSetting.c_powerdelay,10);
             xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250);
             
             char boolCheck[10];
@@ -810,6 +813,12 @@ static void loadConfig()
             } else if (boolCheck[0] == '1') {
                 sidSetting.c_enablefilter = TRUE;
             }
+            xmpfreg->GetString("SIDex","c_powerdelayrandom",boolCheck,10);
+            if (boolCheck[0] == '0') {
+                sidSetting.c_powerdelayrandom = FALSE;
+            } else if (boolCheck[0] == '1') {
+                sidSetting.c_powerdelayrandom = TRUE;
+            }
         }
     }
 }
@@ -829,6 +838,13 @@ static bool applyConfig(bool initThis) {
             sidEngine.m_config.defaultC64Model = SidConfig::PAL;
         } else if (std::string(sidSetting.c_clockspeed).find("NTSC") != std::string::npos) {
             sidEngine.m_config.defaultC64Model = SidConfig::NTSC;
+        }
+        
+        // apply power delay
+        if (sidSetting.c_powerdelayrandom) {
+            sidEngine.m_config.powerOnDelay = 9999;
+        } else if (std::stoi(sidSetting.c_powerdelay)>0) {
+            sidEngine.m_config.powerOnDelay = std::stoi(sidSetting.c_powerdelay);
         }
     }
     
@@ -875,7 +891,7 @@ static void saveConfig()
 {
     xmpfreg->SetString("SIDex","c_sidmodel",sidSetting.c_sidmodel);
     xmpfreg->SetString("SIDex","c_clockspeed",sidSetting.c_clockspeed);
-    xmpfreg->SetString("SIDex","c_core",sidSetting.c_core);
+    xmpfreg->SetString("SIDex","c_powerdelay",sidSetting.c_powerdelay);
     xmpfreg->SetString("SIDex","c_6581filter",sidSetting.c_6581filter);
     xmpfreg->SetString("SIDex","c_8580filter",sidSetting.c_8580filter);
     xmpfreg->SetString("SIDex","c_defaultlength",sidSetting.c_defaultlength);
@@ -899,6 +915,11 @@ static void saveConfig()
         xmpfreg->SetString("SIDex","c_enabledigiboost","1");
     } else {
         xmpfreg->SetString("SIDex","c_enabledigiboost","0");
+    }
+    if (sidSetting.c_powerdelayrandom) {
+        xmpfreg->SetString("SIDex","c_powerdelayrandom","1");
+    } else {
+        xmpfreg->SetString("SIDex","c_powerdelayrandom","0");
     }
     
     if (sidEngine.b_loaded) {
@@ -944,7 +965,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.6c)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.7)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1294,6 +1315,7 @@ static void WINAPI SIDex_Close()
         if (sidEngine.m_engine->isPlaying()) {
             sidEngine.m_engine->stop();
         }
+        delete sidEngine.p_subsonglength;
         delete sidEngine.p_song;
     }
 }
@@ -1391,13 +1413,14 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     sidSetting.c_lockclockspeed = (BST_CHECKED==MESS(IDC_CHECK_LOCKCLOCK, BM_GETCHECK, 0, 0));
                     sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
                     sidSetting.c_enablefilter = (BST_CHECKED==MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0));
+                    sidSetting.c_powerdelayrandom = (BST_CHECKED==MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0));
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
-                    MESS(IDC_COMBO_CORE, WM_GETTEXT, 10, sidSetting.c_core);
                     MESS(IDC_COMBO_6581LEVEL, WM_GETTEXT, 10, sidSetting.c_6581filter);
                     MESS(IDC_COMBO_8580LEVEL, WM_GETTEXT, 10, sidSetting.c_8580filter);
                     MESS(IDC_EDIT_DEFAULTLENGTH, WM_GETTEXT, 10, sidSetting.c_defaultlength);
                     MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
+                    MESS(IDC_EDIT_POWERDELAY, WM_GETTEXT, 250, sidSetting.c_powerdelay);
                     
                     // apply configuraton
                     saveConfig();
@@ -1415,9 +1438,6 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             SendMessage(szClockspeed, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("PAL"));
             SendMessage(szClockspeed, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("NTSC"));
             SendMessage(szClockspeed, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_clockspeed);
-            HWND szCore = GetDlgItem(hWnd, IDC_COMBO_CORE);
-            SendMessage(szCore, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("ReSIDfp"));
-            SendMessage(szCore, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_core);
             HWND sz6581filter = GetDlgItem(hWnd, IDC_COMBO_6581LEVEL);
             SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("0"));
             SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("5"));
@@ -1469,7 +1489,9 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             MESS(IDC_CHECK_LOCKCLOCK, BM_SETCHECK, sidSetting.c_lockclockspeed?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_ENABLEFILTER, BM_SETCHECK, sidSetting.c_enablefilter?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_DIGIBOOST, BM_SETCHECK, sidSetting.c_enabledigiboost?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_RANDOMDELAY, BM_SETCHECK, sidSetting.c_powerdelayrandom?BST_CHECKED:BST_UNCHECKED, 0);
             SetDlgItemText(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength);
+            SetDlgItemText(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay);
             SetDlgItemText(hWnd, IDC_EDIT_DBPATH, sidSetting.c_dbpath);
             return TRUE;
     }
@@ -1483,7 +1505,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.6c)",
+    "SIDex (v0.7)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
