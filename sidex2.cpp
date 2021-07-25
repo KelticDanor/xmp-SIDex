@@ -17,6 +17,7 @@ static XMPFUNC_REGISTRY *xmpfreg;
 #include <sidplayfp/SidTuneInfo.h>
 #include <sidplayfp/sidplayfp.h>
 
+#include <commctrl.h>
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
@@ -731,18 +732,22 @@ typedef struct
     char c_clockspeed[10];
     char c_powerdelay[10];
     char c_defaultlength[10];
+    char c_minlength[10];
     char c_6581filter[10];
     char c_8580filter[10];
+    char c_samplemethod[10];
     char c_dbpath[250];
     bool c_locksidmodel;
     bool c_lockclockspeed;
     bool c_enablefilter;
     bool c_enabledigiboost;
     bool c_powerdelayrandom;
+    bool c_forcelength;
+    bool c_skipshort;
 } SIDsetting;
 static SIDsetting sidSetting;
 
-// generic functions
+// pretty up the format
 static const char* simpleFormat(const char* songFormat) {
     if (std::string(songFormat).find("PSID") != std::string::npos) {
         return "PSID";
@@ -752,6 +757,7 @@ static const char* simpleFormat(const char* songFormat) {
         return songFormat;
     }
 }
+// pretty up the length
 static const char* simpleLength(int songLength, char *buf) {
     int rsSecond = songLength;
     int rsMinute = songLength / 60;
@@ -764,60 +770,85 @@ static const char* simpleLength(int songLength, char *buf) {
     }
     return buf;
 }
+// config load/save/apply functions
 static void loadConfig()
 {
     if (!sidEngine.b_loaded) {
         strcpy(sidSetting.c_sidmodel, "6581");
         strcpy(sidSetting.c_defaultlength, "120");
+        strcpy(sidSetting.c_minlength, "3");
         strcpy(sidSetting.c_6581filter, "25");
         strcpy(sidSetting.c_8580filter, "50");
         strcpy(sidSetting.c_clockspeed, "PAL");
+        strcpy(sidSetting.c_samplemethod, "Normal");
         strcpy(sidSetting.c_powerdelay, "0");
         strcpy(sidSetting.c_dbpath, "");
         sidSetting.c_lockclockspeed = FALSE;
         sidSetting.c_locksidmodel = FALSE;
         sidSetting.c_enabledigiboost = FALSE;
         sidSetting.c_enablefilter = TRUE;
-        sidSetting.c_powerdelayrandom = FALSE;
+        sidSetting.c_powerdelayrandom = TRUE;
+        sidSetting.c_forcelength = FALSE;
+        sidSetting.c_skipshort = FALSE;
         
         if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
             xmpfreg->GetString("SIDex","c_defaultlength",sidSetting.c_defaultlength,10);
+            xmpfreg->GetString("SIDex","c_minlength",sidSetting.c_minlength,10);
             xmpfreg->GetString("SIDex","c_6581filter",sidSetting.c_6581filter,10);
             xmpfreg->GetString("SIDex","c_8580filter",sidSetting.c_8580filter,10);
             xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
             xmpfreg->GetString("SIDex","c_powerdelay",sidSetting.c_powerdelay,10);
+            xmpfreg->GetString("SIDex","c_samplemethod",sidSetting.c_samplemethod,10);
             xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250);
             
-            char boolCheck[10];
-            xmpfreg->GetString("SIDex","c_lockclockspeed",boolCheck,10);
-            if (boolCheck[0] == '0') {
+            char checkLockclockspeed[10];
+            xmpfreg->GetString("SIDex","c_lockclockspeed",checkLockclockspeed,10);
+            if (checkLockclockspeed[0] == '0') {
                 sidSetting.c_lockclockspeed = FALSE;
-            } else if (boolCheck[0] == '1') {
+            } else if (checkLockclockspeed[0] == '1') {
                 sidSetting.c_lockclockspeed = TRUE;
             }
-            xmpfreg->GetString("SIDex","c_locksidmodel",boolCheck,10);
-            if (boolCheck[0] == '0') {
+            char checkSidmodel[10];
+            xmpfreg->GetString("SIDex","c_locksidmodel",checkSidmodel,10);
+            if (checkSidmodel[0] == '0') {
                 sidSetting.c_locksidmodel = FALSE;
-            } else if (boolCheck[0] == '1') {
+            } else if (checkSidmodel[0] == '1') {
                 sidSetting.c_locksidmodel = TRUE;
             }
-            xmpfreg->GetString("SIDex","c_enabledigiboost",boolCheck,10);
-            if (boolCheck[0] == '0') {
+            char checkEnabledigiboost[10];
+            xmpfreg->GetString("SIDex","c_enabledigiboost",checkEnabledigiboost,10);
+            if (checkEnabledigiboost[0] == '0') {
                 sidSetting.c_enabledigiboost = FALSE;
-            } else if (boolCheck[0] == '1') {
+            } else if (checkEnabledigiboost[0] == '1') {
                 sidSetting.c_enabledigiboost = TRUE;
             }
-            xmpfreg->GetString("SIDex","c_enablefilter",boolCheck,10);
-            if (boolCheck[0] == '0') {
+            char checkEnablefilter[10];
+            xmpfreg->GetString("SIDex","c_enablefilter",checkEnablefilter,10);
+            if (checkEnablefilter[0] == '0') {
                 sidSetting.c_enablefilter = FALSE;
-            } else if (boolCheck[0] == '1') {
+            } else if (checkEnablefilter[0] == '1') {
                 sidSetting.c_enablefilter = TRUE;
             }
-            xmpfreg->GetString("SIDex","c_powerdelayrandom",boolCheck,10);
-            if (boolCheck[0] == '0') {
+            char checkPowerdelayrandom[10];
+            xmpfreg->GetString("SIDex","c_powerdelayrandom",checkPowerdelayrandom,10);
+            if (checkPowerdelayrandom[0] == '0') {
                 sidSetting.c_powerdelayrandom = FALSE;
-            } else if (boolCheck[0] == '1') {
+            } else if (checkPowerdelayrandom[0] == '1') {
                 sidSetting.c_powerdelayrandom = TRUE;
+            }
+            char checkForcelength[10];
+            xmpfreg->GetString("SIDex","c_forcelength",checkForcelength,10);
+            if (checkForcelength[0] == '0') {
+                sidSetting.c_forcelength = FALSE;
+            } else if (checkForcelength[0] == '1') {
+                sidSetting.c_forcelength = TRUE;
+            }
+            char checkSkipshort[10];
+            xmpfreg->GetString("SIDex","c_skipshort",checkSkipshort,10);
+            if (checkSkipshort[0] == '0') {
+                sidSetting.c_skipshort = FALSE;
+            } else if (checkSkipshort[0] == '1') {
+                sidSetting.c_skipshort = TRUE;
             }
         }
     }
@@ -845,6 +876,13 @@ static bool applyConfig(bool initThis) {
             sidEngine.m_config.powerOnDelay = 9999;
         } else if (std::stoi(sidSetting.c_powerdelay)>0) {
             sidEngine.m_config.powerOnDelay = std::stoi(sidSetting.c_powerdelay);
+        }
+        
+        // apply sample method
+        if (std::string(sidSetting.c_samplemethod).find("Normal") != std::string::npos) {
+            sidEngine.m_config.samplingMethod = SidConfig::INTERPOLATE;
+        } else if (std::string(sidSetting.c_samplemethod).find("Accurate") != std::string::npos) {
+            sidEngine.m_config.samplingMethod = SidConfig::RESAMPLE_INTERPOLATE;
         }
     }
     
@@ -894,7 +932,9 @@ static void saveConfig()
     xmpfreg->SetString("SIDex","c_powerdelay",sidSetting.c_powerdelay);
     xmpfreg->SetString("SIDex","c_6581filter",sidSetting.c_6581filter);
     xmpfreg->SetString("SIDex","c_8580filter",sidSetting.c_8580filter);
+    xmpfreg->SetString("SIDex","c_samplemethod",sidSetting.c_samplemethod);
     xmpfreg->SetString("SIDex","c_defaultlength",sidSetting.c_defaultlength);
+    xmpfreg->SetString("SIDex","c_minlength",sidSetting.c_minlength);
     xmpfreg->SetString("SIDex","c_dbpath",sidSetting.c_dbpath);
     if (sidSetting.c_lockclockspeed) {
         xmpfreg->SetString("SIDex","c_lockclockspeed","1");
@@ -921,11 +961,63 @@ static void saveConfig()
     } else {
         xmpfreg->SetString("SIDex","c_powerdelayrandom","0");
     }
+    if (sidSetting.c_forcelength) {
+        xmpfreg->SetString("SIDex","c_forcelength","1");
+    } else {
+        xmpfreg->SetString("SIDex","c_forcelength","0");
+    }
+    if (sidSetting.c_skipshort) {
+        xmpfreg->SetString("SIDex","c_skipshort","1");
+    } else {
+        xmpfreg->SetString("SIDex","c_skipshort","0");
+    }
     
     if (sidEngine.b_loaded) {
         applyConfig(FALSE);
     }
 }
+// functions to load and fetch the songlengthdbase
+static void loadSonglength() {
+    if (!sidSetting.c_forcelength && !sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
+        std::string relpathName = sidSetting.c_dbpath;
+        relpathName.append("Songlengths.md5");
+        sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
+    }
+}
+static int fetchSonglength(SidTune* sidSong, int sidSubsong) {
+    char md5[SidTune::MD5_LENGTH + 1];
+    int32_t md5duration = 0;
+    int32_t defaultduration = std::stoi(sidSetting.c_defaultlength);
+
+    if (!sidSetting.c_forcelength && sidEngine.d_loadeddbase) {
+        md5duration = sidEngine.d_songdbase.length(sidSong->createMD5New(md5), sidSubsong);
+        if (md5duration > 0) {
+            defaultduration = md5duration;
+        }
+    }
+    
+    return defaultduration;
+}
+// try to load STIL database
+static void loadSTILbase() {
+    if (!sidEngine.d_loadedstil && strlen(sidSetting.c_dbpath)>10) {
+        std::string relpathName = sidSetting.c_dbpath;
+        relpathName.replace((relpathName.length()-10), 10, "");
+        char abspathName[_MAX_PATH];
+        if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
+            sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
+        }
+    }
+}
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
+// initialise the plugin
 static void WINAPI SIDex_Init()
 {
     if (!sidEngine.b_loaded) {
@@ -952,6 +1044,8 @@ static void WINAPI SIDex_Init()
         }
     }
 }
+// deinitialise, not actually used
+/*
 static void WINAPI SIDex_Exit()
 {
     // do a little cleanup
@@ -960,12 +1054,13 @@ static void WINAPI SIDex_Exit()
         delete sidEngine.m_engine;
     }
 }
+*/
 
 // general purpose
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.7)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.8)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -995,27 +1090,16 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
             if (strlen(sidLookup.p_songartist)>0) {
                 sidLookup.p_songartist = xmpftext->Utf8(sidLookup.p_songartist,strlen(sidLookup.p_songartist));
             }
+            if (strlen(sidLookup.p_songreleased)>0) {
+                sidLookup.p_songreleased = xmpftext->Utf8(sidLookup.p_songreleased,strlen(sidLookup.p_songreleased));
+            }
         
         // load lengths
-        if (!sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
-            std::string relpathName = sidSetting.c_dbpath;
-            relpathName.append("Songlengths.md5");
-            sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
-        }
+        loadSonglength();
         sidLookup.p_subsonglength = new int [sidLookup.p_songcount + 1];
         sidLookup.p_songlength = 0;
         for (int si=1;si<=sidLookup.p_songcount; si++) {
-            char md5[SidTune::MD5_LENGTH + 1];
-            int32_t md5duration = 0;
-            int32_t defaultduration = std::stoi(sidSetting.c_defaultlength);
-            
-            if (sidEngine.d_loadeddbase) {
-                md5duration = sidEngine.d_songdbase.length(sidLookup.p_song->createMD5New(md5), si);
-                if (md5duration > 0) {
-                    defaultduration = md5duration;
-                }
-            }
-            
+            int defaultduration = fetchSonglength(sidLookup.p_song,si);
             sidLookup.p_subsonglength[si] = defaultduration;
             sidLookup.p_songlength += defaultduration;
         }
@@ -1054,6 +1138,7 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
 
         xmpfmisc->Free((void*)sidLookup.p_songtitle);
         xmpfmisc->Free((void*)sidLookup.p_songartist);
+        xmpfmisc->Free((void*)sidLookup.p_songreleased);
         delete sidLookup.p_subsonglength;
         delete sidLookup.p_song;
 
@@ -1120,16 +1205,10 @@ static void WINAPI SIDex_GetGeneralInfo(char *buf)
     buf += sprintf(buf, "%s\t%s\r", "Length", simpleLength(sidEngine.p_songlength, temp));
     buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.2.1");
 }
-// trim from both ends
-static inline std::string &trim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-    return s;
-}
 static void WINAPI SIDex_GetMessage(char *buf)
 {
+    // Load STIL database
+    loadSTILbase();
     if (sidEngine.d_loadedstil) {
         const char * stilComment;
         const char * stilEntry;
@@ -1234,13 +1313,16 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             sidEngine.p_songformat = sidEngine.p_songinfo->formatString();
             sidEngine.p_songtitle = sidEngine.p_songinfo->infoString(0);
             sidEngine.p_songartist = sidEngine.p_songinfo->infoString(1);
-            if (strlen(sidEngine.p_songtitle)>0) {
-                sidEngine.p_songtitle = xmpftext->Utf8(sidEngine.p_songtitle,strlen(sidEngine.p_songtitle));
-            }
-            if (strlen(sidEngine.p_songartist)>0) {
-                sidEngine.p_songartist = xmpftext->Utf8(sidEngine.p_songartist,strlen(sidEngine.p_songartist));
-            }
             sidEngine.p_songreleased = sidEngine.p_songinfo->infoString(2);
+                if (strlen(sidEngine.p_songtitle)>0) {
+                    sidEngine.p_songtitle = xmpftext->Utf8(sidEngine.p_songtitle,strlen(sidEngine.p_songtitle));
+                }
+                if (strlen(sidEngine.p_songartist)>0) {
+                    sidEngine.p_songartist = xmpftext->Utf8(sidEngine.p_songartist,strlen(sidEngine.p_songartist));
+                }
+                if (strlen(sidEngine.p_songreleased)>0) {
+                    sidEngine.p_songreleased = xmpftext->Utf8(sidEngine.p_songreleased,strlen(sidEngine.p_songreleased));
+                }
             sidEngine.p_subsong = 1;
             sidEngine.p_song->selectSong(sidEngine.p_subsong);
 
@@ -1260,35 +1342,12 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
                 sidEngine.p_clockspeed = "NTSC";
             }
             
-            // Load STIL database
-            if (!sidEngine.d_loadedstil && strlen(sidSetting.c_dbpath)>10) {
-                std::string relpathName = sidSetting.c_dbpath;
-                relpathName.replace((relpathName.length()-10), 10, "");
-                char abspathName[_MAX_PATH];
-                if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
-                    sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
-                }
-            }
             // load lengths
-            if (!sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
-                std::string relpathName = sidSetting.c_dbpath;
-                relpathName.append("Songlengths.md5");
-                sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
-            }
+            loadSonglength();
             sidEngine.p_subsonglength = new int [sidEngine.p_songcount + 1];
             sidEngine.p_songlength = 0;
             for (int si=1;si<=sidEngine.p_songcount; si++) {
-                char md5[SidTune::MD5_LENGTH + 1];
-                int32_t md5duration = 0;
-                int32_t defaultduration = std::stoi(sidSetting.c_defaultlength);
-
-                if (sidEngine.d_loadeddbase) {
-                    md5duration = sidEngine.d_songdbase.length(sidEngine.p_song->createMD5New(md5), si);
-                    if (md5duration > 0) {
-                        defaultduration = md5duration;
-                    }
-                }
-
+                int defaultduration = fetchSonglength(sidEngine.p_song,si);
                 sidEngine.p_subsonglength[si] = defaultduration;
                 sidEngine.p_songlength += defaultduration;
             }
@@ -1321,6 +1380,12 @@ static void WINAPI SIDex_Close()
 }
 static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
 {
+    // skip short song
+    if (sidSetting.c_skipshort && std::stoi(sidSetting.c_minlength) >= sidEngine.p_subsonglength[sidEngine.p_subsong]) {
+         return 0;
+    }
+    
+    // process
     sidEngine.p_songpos = sidEngine.m_engine->time();
     if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong] || std::stoi(sidSetting.c_defaultlength) == 0) {
         int sidDone,i;
@@ -1405,7 +1470,16 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
 #define MESS(id,m,w,l) SendDlgItemMessage(hWnd,id,m,(WPARAM)(w),(LPARAM)(l))
 static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    int tempVar;
     switch (msg) {
+        case WM_NOTIFY:
+            switch (LOWORD(wParam)) {
+                case IDC_SLIDE_6581LEVEL:
+                    MESS(IDC_LABEL_6581LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
+                case IDC_SLIDE_8580LEVEL:
+                    MESS(IDC_LABEL_8580LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
+            }
+            break;
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case IDOK:
@@ -1414,13 +1488,17 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
                     sidSetting.c_enablefilter = (BST_CHECKED==MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0));
                     sidSetting.c_powerdelayrandom = (BST_CHECKED==MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0));
+                    sidSetting.c_forcelength = (BST_CHECKED==MESS(IDC_CHECK_FORCELENGTH, BM_GETCHECK, 0, 0));
+                    sidSetting.c_skipshort = (BST_CHECKED==MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0));
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
-                    MESS(IDC_COMBO_6581LEVEL, WM_GETTEXT, 10, sidSetting.c_6581filter);
-                    MESS(IDC_COMBO_8580LEVEL, WM_GETTEXT, 10, sidSetting.c_8580filter);
+                    MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
                     MESS(IDC_EDIT_DEFAULTLENGTH, WM_GETTEXT, 10, sidSetting.c_defaultlength);
+                    MESS(IDC_EDIT_MINLENGTH, WM_GETTEXT, 10, sidSetting.c_minlength);
+                    MESS(IDC_EDIT_POWERDELAY, WM_GETTEXT, 10, sidSetting.c_powerdelay);
                     MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
-                    MESS(IDC_EDIT_POWERDELAY, WM_GETTEXT, 250, sidSetting.c_powerdelay);
+                    strcpy(sidSetting.c_6581filter, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).c_str());
+                    strcpy(sidSetting.c_8580filter, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).c_str());
                     
                     // apply configuraton
                     saveConfig();
@@ -1438,59 +1516,27 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             SendMessage(szClockspeed, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("PAL"));
             SendMessage(szClockspeed, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("NTSC"));
             SendMessage(szClockspeed, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_clockspeed);
-            HWND sz6581filter = GetDlgItem(hWnd, IDC_COMBO_6581LEVEL);
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("0"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("5"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("10"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("15"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("20"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("25"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("30"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("35"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("40"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("45"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("50"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("55"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("60"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("65"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("70"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("75"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("80"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("85"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("90"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("95"));
-            SendMessage(sz6581filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("100"));
-            SendMessage(sz6581filter, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_6581filter);
-            HWND sz8580filter = GetDlgItem(hWnd, IDC_COMBO_8580LEVEL);
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("0"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("5"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("10"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("15"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("20"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("25"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("30"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("35"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("40"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("45"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("50"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("55"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("60"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("65"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("70"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("75"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("80"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("85"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("90"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("95"));
-            SendMessage(sz8580filter, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("100"));
-            SendMessage(sz8580filter, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_8580filter);
+            HWND szSamplemethod = GetDlgItem(hWnd, IDC_COMBO_SAMPLEMETHOD);
+            SendMessage(szSamplemethod, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Normal"));
+            SendMessage(szSamplemethod, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Accurate"));
+            SendMessage(szSamplemethod, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_samplemethod);
+            //
+            MESS(IDC_SLIDE_6581LEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
+            MESS(IDC_SLIDE_6581LEVEL, TBM_SETTICFREQ, 25, 0);
+            MESS(IDC_SLIDE_6581LEVEL, TBM_SETPOS, TRUE, std::stoi(sidSetting.c_6581filter));
+            MESS(IDC_SLIDE_8580LEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
+            MESS(IDC_SLIDE_8580LEVEL, TBM_SETTICFREQ, 25, 0);
+            MESS(IDC_SLIDE_8580LEVEL, TBM_SETPOS, TRUE, std::stoi(sidSetting.c_8580filter));
             //
             MESS(IDC_CHECK_LOCKSID, BM_SETCHECK, sidSetting.c_locksidmodel?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_LOCKCLOCK, BM_SETCHECK, sidSetting.c_lockclockspeed?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_ENABLEFILTER, BM_SETCHECK, sidSetting.c_enablefilter?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_DIGIBOOST, BM_SETCHECK, sidSetting.c_enabledigiboost?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_RANDOMDELAY, BM_SETCHECK, sidSetting.c_powerdelayrandom?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_FORCELENGTH, BM_SETCHECK, sidSetting.c_forcelength?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_SKIPSHORT, BM_SETCHECK, sidSetting.c_skipshort?BST_CHECKED:BST_UNCHECKED, 0);
             SetDlgItemText(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength);
+            SetDlgItemText(hWnd, IDC_EDIT_MINLENGTH, sidSetting.c_minlength);
             SetDlgItemText(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay);
             SetDlgItemText(hWnd, IDC_EDIT_DBPATH, sidSetting.c_dbpath);
             return TRUE;
@@ -1505,7 +1551,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.7)",
+    "SIDex (v0.8)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
