@@ -13,7 +13,7 @@ v0.8
 - Added sampling method option
 - Added skip short song + threshold options
 - 6581 & 8580 filter strength levels are now bars
-- 
+
 v0.7
 - Removed unused Core option
 - Added power delay & random power delay options
