@@ -873,7 +873,7 @@ static bool applyConfig(bool initThis) {
         
         // apply power delay
         if (sidSetting.c_powerdelayrandom) {
-            sidEngine.m_config.powerOnDelay = 9999;
+            sidEngine.m_config.powerOnDelay = SidConfig::DEFAULT_POWER_ON_DELAY;
         } else if (std::stoi(sidSetting.c_powerdelay)>0) {
             sidEngine.m_config.powerOnDelay = std::stoi(sidSetting.c_powerdelay);
         }
@@ -1060,7 +1060,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.8)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.8a)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1551,7 +1551,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.8)",
+    "SIDex (v0.8a)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
