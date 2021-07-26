@@ -914,7 +914,6 @@ static bool applyConfig(bool initThis) {
     float temp6581set = (float)std::stoi(sidSetting.c_6581filter) / 100;
     sidEngine.m_builder->filter6581Curve(temp6581set);
     float temp8580set = (float)std::stoi(sidSetting.c_8580filter) / 100;
-    temp8580set = 25000*temp8580set;
     sidEngine.m_builder->filter8580Curve(temp8580set);
     
     // apply config
@@ -976,6 +975,14 @@ static void saveConfig()
         applyConfig(FALSE);
     }
 }
+// trim from both ends
+static inline std::string &trim(std::string &s) {
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))));
+    s.erase(std::find_if(s.rbegin(), s.rend(),
+            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
+    return s;
+}
 // functions to load and fetch the songlengthdbase
 static void loadSonglength() {
     if (!sidSetting.c_forcelength && !sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
@@ -1009,13 +1016,39 @@ static void loadSTILbase() {
         }
     }
 }
-// trim from both ends
-static inline std::string &trim(std::string &s) {
-    s.erase(s.begin(), std::find_if(s.begin(), s.end(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))));
-    s.erase(std::find_if(s.rbegin(), s.rend(),
-            std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
-    return s;
+static void fetchSTILbase(const char * stilData, char **buf) {
+    if (stilData != NULL) {
+        std::istringstream stilDatastr(stilData);
+        std::string labetTxt;
+        std::string stilOutput;
+        while (std::getline(stilDatastr, stilOutput)) {
+            if (!stilOutput.empty()) {
+                stilOutput = trim(stilOutput);
+                labetTxt = "";
+                if (stilOutput.find("COMMENT: ") != -1) {
+                    stilOutput.replace(stilOutput.find("COMMENT: "), 9, "");
+                    labetTxt = "Comment";
+                } else if (stilOutput.find("AUTHOR: ") != -1) {
+                    stilOutput.replace(stilOutput.find("AUTHOR: "), 8, "");
+                    labetTxt = "Author";
+                } else if (stilOutput.find("ARTIST: ") != -1) {
+                    stilOutput.replace(stilOutput.find("ARTIST: "), 8, "");
+                    labetTxt = "Artist";
+                } else if (stilOutput.find("TITLE: ") != -1) {
+                    stilOutput.replace(stilOutput.find("TITLE: "), 7, "");
+                    labetTxt = "Title";
+                } else if (stilOutput.find("NAME: ") != -1) {
+                    stilOutput.replace(stilOutput.find("NAME: "), 6, "");
+                    labetTxt = "Name";
+                }
+                char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
+                *buf = xmpfmisc->FormatInfoText(*buf, labetTxt.c_str(), value);
+                xmpfmisc->Free(value);
+            } else {
+                break;
+            }
+        }
+    }
 }
 // initialise the plugin
 static void WINAPI SIDex_Init()
@@ -1060,7 +1093,7 @@ static void WINAPI SIDex_Exit()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.8a)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.8c)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1214,87 +1247,26 @@ static void WINAPI SIDex_GetMessage(char *buf)
         const char * stilEntry;
         const char * stilBug;
         std::string searchPath;
-        std::string stilOutput;
             searchPath.append(sidEngine.p_songinfo->path());
             searchPath.append(sidEngine.p_songinfo->dataFileName());
         stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
-        stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),sidEngine.p_subsong,STIL::all);
+        stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),0,STIL::all);
         stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
         
         if (stilComment != NULL) {
-            buf += sprintf(buf, "STIL Global Comment\t\r");
-            buf += sprintf(buf, "-=-=-=-=-=-=-=-=-=-\r");
-            std::istringstream stilCommentstr(stilComment);
-            std::string labetTxt;
-            while (std::getline(stilCommentstr, stilOutput)) {
-                if (!stilOutput.empty()) {
-                    stilOutput = trim(stilOutput);
-                    labetTxt = "";
-                    if (stilOutput.find("COMMENT: ") != -1) {
-                        stilOutput.replace(stilOutput.find("COMMENT: "), 9, "");
-                        labetTxt = "Comment";
-                    }
-                    char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
-                    buf = xmpfmisc->FormatInfoText(buf, labetTxt.c_str(), value);
-                    xmpfmisc->Free(value);
-                } else {
-                    break;
-                }
-            }
+            buf += sprintf(buf, "STIL Global Comment\t-=-\r");
+            fetchSTILbase(stilComment,&buf);
+            buf += sprintf(buf, "\r");
         }
         if (stilEntry != NULL) {
-            buf += sprintf(buf, "STIL Entry\t\r");
-            buf += sprintf(buf, "-=-=-=-=-=-=-=-=-=-\r");
-            std::istringstream stilEntrystr(stilEntry);
-            std::string labetTxt;
-            while (std::getline(stilEntrystr, stilOutput)) {
-                if (!stilOutput.empty()) {
-                    stilOutput = trim(stilOutput);
-                    labetTxt = "";
-                    if (stilOutput.find("COMMENT: ") != -1) {
-                        stilOutput.replace(stilOutput.find("COMMENT: "), 9, "");
-                        labetTxt = "Comment";
-                    } else if (stilOutput.find("AUTHOR: ") != -1) {
-                        stilOutput.replace(stilOutput.find("AUTHOR: "), 8, "");
-                        labetTxt = "Author";
-                    } else if (stilOutput.find("ARTIST: ") != -1) {
-                        stilOutput.replace(stilOutput.find("ARTIST: "), 8, "");
-                        labetTxt = "Artist";
-                    } else if (stilOutput.find("TITLE: ") != -1) {
-                        stilOutput.replace(stilOutput.find("TITLE: "), 7, "");
-                        labetTxt = "Title";
-                    } else if (stilOutput.find("NAME: ") != -1) {
-                        stilOutput.replace(stilOutput.find("NAME: "), 6, "");
-                        labetTxt = "Name";
-                    }
-                    char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
-                    buf = xmpfmisc->FormatInfoText(buf, labetTxt.c_str(), value);
-                    xmpfmisc->Free(value);
-                } else {
-                    break;
-                }
-            }
+            buf += sprintf(buf, "STIL Tune Entry\t-=-\r");
+            fetchSTILbase(stilEntry,&buf);
+            buf += sprintf(buf, "\r");
         }
         if (stilBug != NULL) {
-            buf += sprintf(buf, "STIL Bug\t\r");
-            buf += sprintf(buf, "-=-=-=-=-=-=-=-=-=-\r");
-            std::istringstream stilBugstr(stilBug);
-            std::string labetTxt;
-            while (std::getline(stilBugstr, stilOutput)) {
-                if (!stilOutput.empty()) {
-                    stilOutput = trim(stilOutput);
-                    labetTxt = "";
-                    if (stilOutput.find("BUG: ") != -1) {
-                        stilOutput.replace(stilOutput.find("BUG: "), 5, "");
-                        labetTxt = "Bug";
-                    }
-                    char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
-                    buf = xmpfmisc->FormatInfoText(buf, labetTxt.c_str(), value);
-                    xmpfmisc->Free(value);
-                } else {
-                    break;
-                }
-            }
+            buf += sprintf(buf, "STIL Tune Bug\t-=-\r");
+            fetchSTILbase(stilBug,&buf);
+            buf += sprintf(buf, "\r");
         }
     }
 }
@@ -1551,7 +1523,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.8a)",
+    "SIDex (v0.8c)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
