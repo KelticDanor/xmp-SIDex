@@ -1,10 +1,19 @@
 # xmp-SIDex
 SID Input Plugin for the XMPlay audio player
 
-# Description
+### Description
 This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.0 library, it is also my first input plug in so be gentle.
 
-# Change Log
+### Wish List
+Currently looking at the following
+- Add SIDid identifying players
+- Add fancy volume ramp/click detection/removal at the start of sid playback.
+
+### Known Issues
+The current release has some issues as follows
+- Adding large numbers of sids to the playlist in one go eventually causes a crash due to SidDatabase.length() lookup exploding in some manner, adding in small batches won't crash.
+
+### Change Log
 v0.8c
 - [c] All STIL entries read instead of sub song specific due to missing records
 - [c] Format STIL database code moved to its own function
