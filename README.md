@@ -5,7 +5,8 @@ SID Input Plugin for the XMPlay audio player
 This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.0 library, it is also my first input plug in so be gentle.
 
 # Change Log
-v0.8
+v0.8a
+- [a] Changed random power delay to use correct value
 - Moved songlength database setup & fetch code out to its own function
 - Moved STIL database setup code out to its own function
 - "Released" converted to UTF8 using XMPlay functions
