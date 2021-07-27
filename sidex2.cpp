@@ -767,7 +767,7 @@ static void loadConfig()
         sidSetting.c_6581filter = 25;
         sidSetting.c_8580filter = 50;
         sidSetting.c_powerdelay = 0;
-        sidSetting.c_fadeinms = 500;
+        sidSetting.c_fadeinms = 80;
         sidSetting.c_lockclockspeed = FALSE;
         sidSetting.c_locksidmodel = FALSE;
         sidSetting.c_enabledigiboost = FALSE;
