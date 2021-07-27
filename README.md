@@ -2,7 +2,7 @@
 SID Input Plugin for the XMPlay audio player
 
 ### Description
-This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.0 library, it is also my first input plug in so be gentle.
+This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.1 library, it is also my first input plug in so be gentle.
 
 ### Wish List
 Currently looking at the following
