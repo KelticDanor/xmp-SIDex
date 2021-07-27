@@ -713,7 +713,7 @@ typedef struct
 {
     char c_sidmodel[10];
     char c_clockspeed[10];
-    char c_powerdelay[10];
+    int c_powerdelay;
     int c_defaultlength;
     int c_minlength;
     int c_6581filter;
@@ -758,14 +758,14 @@ static void loadConfig()
 {
     if (!sidEngine.b_loaded) {
         strcpy(sidSetting.c_sidmodel, "6581");
+        strcpy(sidSetting.c_clockspeed, "PAL");
+        strcpy(sidSetting.c_samplemethod, "Normal");
+        strcpy(sidSetting.c_dbpath, "");
         sidSetting.c_defaultlength = 120;
         sidSetting.c_minlength = 3;
         sidSetting.c_6581filter = 25;
-        sidSetting.c_6581filter = 50;
-        strcpy(sidSetting.c_clockspeed, "PAL");
-        strcpy(sidSetting.c_samplemethod, "Normal");
-        strcpy(sidSetting.c_powerdelay, "0");
-        strcpy(sidSetting.c_dbpath, "");
+        sidSetting.c_8580filter = 50;
+        sidSetting.c_powerdelay = 0;
         sidSetting.c_lockclockspeed = FALSE;
         sidSetting.c_locksidmodel = FALSE;
         sidSetting.c_enabledigiboost = FALSE;
@@ -775,14 +775,14 @@ static void loadConfig()
         sidSetting.c_skipshort = FALSE;
         
         if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
+            xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
+            xmpfreg->GetString("SIDex","c_samplemethod",sidSetting.c_samplemethod,10);
+            xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250);
             xmpfreg->GetInt("SIDex", "c_defaultlength", &sidSetting.c_defaultlength);
             xmpfreg->GetInt("SIDex", "c_minlength", &sidSetting.c_minlength);
             xmpfreg->GetInt("SIDex", "c_6581filter", &sidSetting.c_6581filter);
             xmpfreg->GetInt("SIDex","c_8580filter", &sidSetting.c_8580filter);
-            xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
-            xmpfreg->GetString("SIDex","c_powerdelay",sidSetting.c_powerdelay,10);
-            xmpfreg->GetString("SIDex","c_samplemethod",sidSetting.c_samplemethod,10);
-            xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250);
+            xmpfreg->GetInt("SIDex","c_powerdelay", &sidSetting.c_powerdelay);
             
             int ival;
             if (xmpfreg->GetInt("SIDex", "c_lockclockspeed", &ival))
@@ -823,8 +823,8 @@ static bool applyConfig(bool initThis) {
         // apply power delay
         if (sidSetting.c_powerdelayrandom) {
             sidEngine.m_config.powerOnDelay = SidConfig::DEFAULT_POWER_ON_DELAY;
-        } else if (std::stoi(sidSetting.c_powerdelay)>0) {
-            sidEngine.m_config.powerOnDelay = std::stoi(sidSetting.c_powerdelay);
+        } else {
+            sidEngine.m_config.powerOnDelay = sidSetting.c_powerdelay;
         }
         
         // apply sample method
@@ -860,14 +860,14 @@ static bool applyConfig(bool initThis) {
 static void saveConfig()
 {
     xmpfreg->SetString("SIDex","c_sidmodel",sidSetting.c_sidmodel);
+    xmpfreg->SetString("SIDex","c_samplemethod",sidSetting.c_samplemethod);
+    xmpfreg->SetString("SIDex","c_dbpath",sidSetting.c_dbpath);
     xmpfreg->SetString("SIDex","c_clockspeed",sidSetting.c_clockspeed);
-    xmpfreg->SetString("SIDex","c_powerdelay",sidSetting.c_powerdelay);
+    xmpfreg->SetInt("SIDex", "c_powerdelay", &sidSetting.c_powerdelay);
     xmpfreg->SetInt("SIDex", "c_6581filter", &sidSetting.c_6581filter);
     xmpfreg->SetInt("SIDex", "c_8580filter", &sidSetting.c_8580filter);
-    xmpfreg->SetString("SIDex","c_samplemethod",sidSetting.c_samplemethod);
     xmpfreg->SetInt("SIDex", "c_defaultlength", &sidSetting.c_defaultlength);
     xmpfreg->SetInt("SIDex", "c_minlength", &sidSetting.c_minlength);
-    xmpfreg->SetString("SIDex","c_dbpath",sidSetting.c_dbpath);
 
     int ival;
     ival = sidSetting.c_lockclockspeed;
@@ -1113,7 +1113,7 @@ static void WINAPI SIDex_GetMessage(char *buf)
             searchPath.append(sidEngine.p_songinfo->path());
             searchPath.append(sidEngine.p_songinfo->dataFileName());
         stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
-        stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),0,STIL::all);
+        stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),sidEngine.p_subsong,STIL::all);
         stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
         
         if (stilComment != NULL) {
@@ -1315,10 +1315,10 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
                     MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
+                    MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
                     sidSetting.c_defaultlength = GetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, NULL, false);
                     sidSetting.c_minlength = GetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, NULL, false);
-                    MESS(IDC_EDIT_POWERDELAY, WM_GETTEXT, 10, sidSetting.c_powerdelay);
-                    MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
+                    sidSetting.c_powerdelay = GetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, NULL, false);
                     sidSetting.c_6581filter = SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, TBM_GETPOS, 0, 0);
                     sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
                     
@@ -1359,7 +1359,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             MESS(IDC_CHECK_SKIPSHORT, BM_SETCHECK, sidSetting.c_skipshort?BST_CHECKED:BST_UNCHECKED, 0);
             SetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength, false);
             SetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, sidSetting.c_minlength, false);
-            SetDlgItemText(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay);
+            SetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay, false);
             SetDlgItemText(hWnd, IDC_EDIT_DBPATH, sidSetting.c_dbpath);
             return TRUE;
     }
