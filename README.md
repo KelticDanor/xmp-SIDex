@@ -9,10 +9,6 @@ Currently looking at the following
 - Add SIDid identifying players
 - Add fancy volume ramp/click detection/removal at the start of sid playback.
 
-### Known Issues
-The current release has some issues as follows
-- Adding large numbers of sids to the playlist in one go eventually causes a crash due to SidDatabase.length() lookup exploding in some manner, adding in small batches won't crash.
-
 ### Change Log
 v0.9
 - Lots of tidy ups of silly billy code by Ian :)
