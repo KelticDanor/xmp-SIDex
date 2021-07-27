@@ -14,7 +14,12 @@ The current release has some issues as follows
 - Adding large numbers of sids to the playlist in one go eventually causes a crash due to SidDatabase.length() lookup exploding in some manner, adding in small batches won't crash.
 
 ### Change Log
-v0.8c
+v0.9
+- Lots of tidy ups of unnecessary code by Ian :)
+- SidDatabase.cpp patched properly to fix crash processing Songlengths.md5 times
+
+v0.8d
+- [d] SidDatabase.cpp patched to fix crash processing Songlengths.md5 times
 - [c] All STIL entries read instead of sub song specific due to missing records
 - [c] Format STIL database code moved to its own function
 - [b] 8580 filter strength ranged from 0.0-1.0 instead
