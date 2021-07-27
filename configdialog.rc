@@ -26,7 +26,7 @@ BEGIN
     LTEXT           "6581 filter strength:",IDC_STATIC,229,37,71,8
     CONTROL         "Enable SID filters",IDC_CHECK_ENABLEFILTER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,229,18,100,10
     LTEXT           "8580 filter strength:",IDC_STATIC,229,56,71,8
-    GROUPBOX        "Song Options (sec, 0=Indefinite)",IDC_STATIC,8,98,198,52
+    GROUPBOX        "Song Lengths (sec, 0=Indefinite)",IDC_STATIC,8,98,198,52
     LTEXT           "**Sampling method:",IDC_STATIC,20,73,71,8
     COMBOBOX        IDC_COMBO_SAMPLEMETHOD,97,71,56,30,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "",IDC_SLIDE_6581LEVEL,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,298,32,110,12
