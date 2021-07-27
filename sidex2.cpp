@@ -703,10 +703,6 @@ typedef struct
     int p_songlength;
     int p_songpos;
     int* p_subsonglength;
-    const char* p_songformat;
-    const char* p_songtitle;
-    const char* p_songartist;
-    const char* p_songreleased;
     char* p_sidmodel;
     char* p_clockspeed;
     bool b_loaded;
@@ -715,26 +711,13 @@ static SIDengine sidEngine;
 
 typedef struct
 {
-    SidTune* p_song;
-    const SidTuneInfo* p_songinfo;
-    int p_songcount;
-    int p_songlength;
-    int* p_subsonglength;
-    const char* p_songformat;
-    const char* p_songtitle;
-    const char* p_songartist;
-    const char* p_songreleased;
-} SIDlookup;
-
-typedef struct
-{
     char c_sidmodel[10];
     char c_clockspeed[10];
     char c_powerdelay[10];
-    char c_defaultlength[10];
-    char c_minlength[10];
-    char c_6581filter[10];
-    char c_8580filter[10];
+    int c_defaultlength;
+    int c_minlength;
+    int c_6581filter;
+    int c_8580filter;
     char c_samplemethod[10];
     char c_dbpath[250];
     bool c_locksidmodel;
@@ -775,10 +758,10 @@ static void loadConfig()
 {
     if (!sidEngine.b_loaded) {
         strcpy(sidSetting.c_sidmodel, "6581");
-        strcpy(sidSetting.c_defaultlength, "120");
-        strcpy(sidSetting.c_minlength, "3");
-        strcpy(sidSetting.c_6581filter, "25");
-        strcpy(sidSetting.c_8580filter, "50");
+        sidSetting.c_defaultlength = 120;
+        sidSetting.c_minlength = 3;
+        sidSetting.c_6581filter = 25;
+        sidSetting.c_6581filter = 50;
         strcpy(sidSetting.c_clockspeed, "PAL");
         strcpy(sidSetting.c_samplemethod, "Normal");
         strcpy(sidSetting.c_powerdelay, "0");
@@ -792,64 +775,30 @@ static void loadConfig()
         sidSetting.c_skipshort = FALSE;
         
         if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
-            xmpfreg->GetString("SIDex","c_defaultlength",sidSetting.c_defaultlength,10);
-            xmpfreg->GetString("SIDex","c_minlength",sidSetting.c_minlength,10);
-            xmpfreg->GetString("SIDex","c_6581filter",sidSetting.c_6581filter,10);
-            xmpfreg->GetString("SIDex","c_8580filter",sidSetting.c_8580filter,10);
+            xmpfreg->GetInt("SIDex", "c_defaultlength", &sidSetting.c_defaultlength);
+            xmpfreg->GetInt("SIDex", "c_minlength", &sidSetting.c_minlength);
+            xmpfreg->GetInt("SIDex", "c_6581filter", &sidSetting.c_6581filter);
+            xmpfreg->GetInt("SIDex","c_8580filter", &sidSetting.c_8580filter);
             xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
             xmpfreg->GetString("SIDex","c_powerdelay",sidSetting.c_powerdelay,10);
             xmpfreg->GetString("SIDex","c_samplemethod",sidSetting.c_samplemethod,10);
             xmpfreg->GetString("SIDex","c_dbpath",sidSetting.c_dbpath,250);
             
-            char checkLockclockspeed[10];
-            xmpfreg->GetString("SIDex","c_lockclockspeed",checkLockclockspeed,10);
-            if (checkLockclockspeed[0] == '0') {
-                sidSetting.c_lockclockspeed = FALSE;
-            } else if (checkLockclockspeed[0] == '1') {
-                sidSetting.c_lockclockspeed = TRUE;
-            }
-            char checkSidmodel[10];
-            xmpfreg->GetString("SIDex","c_locksidmodel",checkSidmodel,10);
-            if (checkSidmodel[0] == '0') {
-                sidSetting.c_locksidmodel = FALSE;
-            } else if (checkSidmodel[0] == '1') {
-                sidSetting.c_locksidmodel = TRUE;
-            }
-            char checkEnabledigiboost[10];
-            xmpfreg->GetString("SIDex","c_enabledigiboost",checkEnabledigiboost,10);
-            if (checkEnabledigiboost[0] == '0') {
-                sidSetting.c_enabledigiboost = FALSE;
-            } else if (checkEnabledigiboost[0] == '1') {
-                sidSetting.c_enabledigiboost = TRUE;
-            }
-            char checkEnablefilter[10];
-            xmpfreg->GetString("SIDex","c_enablefilter",checkEnablefilter,10);
-            if (checkEnablefilter[0] == '0') {
-                sidSetting.c_enablefilter = FALSE;
-            } else if (checkEnablefilter[0] == '1') {
-                sidSetting.c_enablefilter = TRUE;
-            }
-            char checkPowerdelayrandom[10];
-            xmpfreg->GetString("SIDex","c_powerdelayrandom",checkPowerdelayrandom,10);
-            if (checkPowerdelayrandom[0] == '0') {
-                sidSetting.c_powerdelayrandom = FALSE;
-            } else if (checkPowerdelayrandom[0] == '1') {
-                sidSetting.c_powerdelayrandom = TRUE;
-            }
-            char checkForcelength[10];
-            xmpfreg->GetString("SIDex","c_forcelength",checkForcelength,10);
-            if (checkForcelength[0] == '0') {
-                sidSetting.c_forcelength = FALSE;
-            } else if (checkForcelength[0] == '1') {
-                sidSetting.c_forcelength = TRUE;
-            }
-            char checkSkipshort[10];
-            xmpfreg->GetString("SIDex","c_skipshort",checkSkipshort,10);
-            if (checkSkipshort[0] == '0') {
-                sidSetting.c_skipshort = FALSE;
-            } else if (checkSkipshort[0] == '1') {
-                sidSetting.c_skipshort = TRUE;
-            }
+            int ival;
+            if (xmpfreg->GetInt("SIDex", "c_lockclockspeed", &ival))
+                sidSetting.c_lockclockspeed = ival;
+            if (xmpfreg->GetInt("SIDex", "c_locksidmodel", &ival))
+                sidSetting.c_locksidmodel = ival;
+            if (xmpfreg->GetInt("SIDex", "c_enabledigiboost", &ival))
+                sidSetting.c_enabledigiboost = ival;
+            if (xmpfreg->GetInt("SIDex", "c_enablefilter", &ival))
+                sidSetting.c_enablefilter = ival;
+            if (xmpfreg->GetInt("SIDex", "c_powerdelayrandom", &ival))
+                sidSetting.c_powerdelayrandom = ival;
+            if (xmpfreg->GetInt("SIDex", "c_forcelength", &ival))
+                sidSetting.c_forcelength = ival;
+            if (xmpfreg->GetInt("SIDex", "c_skipshort", &ival))
+                sidSetting.c_skipshort = ival;
         }
     }
 }
@@ -887,33 +836,17 @@ static bool applyConfig(bool initThis) {
     }
     
     // apply sid model & clock speed lock
-    if (sidSetting.c_locksidmodel) {
-        sidEngine.m_config.forceSidModel = TRUE;
-    } else {
-        sidEngine.m_config.forceSidModel = FALSE;
-    }
-    if (sidSetting.c_lockclockspeed) {
-        sidEngine.m_config.forceC64Model = TRUE;
-    } else {
-        sidEngine.m_config.forceC64Model = FALSE;
-    }
+    sidEngine.m_config.forceSidModel = sidSetting.c_locksidmodel;
+    sidEngine.m_config.forceC64Model = sidSetting.c_lockclockspeed;
     
     // apply digi boost
-    if (sidSetting.c_enabledigiboost) {
-        sidEngine.m_config.digiBoost = TRUE;
-    } else {
-        sidEngine.m_config.digiBoost = FALSE;
-    }
+    sidEngine.m_config.digiBoost = sidSetting.c_enabledigiboost;
     
     // apply filter status & levels
-    if (sidSetting.c_enablefilter) {
-        sidEngine.m_builder->filter(TRUE);
-    } else {
-        sidEngine.m_builder->filter(FALSE);
-    }
-    float temp6581set = (float)std::stoi(sidSetting.c_6581filter) / 100;
+    sidEngine.m_builder->filter(sidSetting.c_enablefilter);
+    float temp6581set = (float)sidSetting.c_6581filter / 100;
     sidEngine.m_builder->filter6581Curve(temp6581set);
-    float temp8580set = (float)std::stoi(sidSetting.c_8580filter) / 100;
+    float temp8580set = (float)sidSetting.c_8580filter / 100;
     sidEngine.m_builder->filter8580Curve(temp8580set);
     
     // apply config
@@ -929,47 +862,28 @@ static void saveConfig()
     xmpfreg->SetString("SIDex","c_sidmodel",sidSetting.c_sidmodel);
     xmpfreg->SetString("SIDex","c_clockspeed",sidSetting.c_clockspeed);
     xmpfreg->SetString("SIDex","c_powerdelay",sidSetting.c_powerdelay);
-    xmpfreg->SetString("SIDex","c_6581filter",sidSetting.c_6581filter);
-    xmpfreg->SetString("SIDex","c_8580filter",sidSetting.c_8580filter);
+    xmpfreg->SetInt("SIDex", "c_6581filter", &sidSetting.c_6581filter);
+    xmpfreg->SetInt("SIDex", "c_8580filter", &sidSetting.c_8580filter);
     xmpfreg->SetString("SIDex","c_samplemethod",sidSetting.c_samplemethod);
-    xmpfreg->SetString("SIDex","c_defaultlength",sidSetting.c_defaultlength);
-    xmpfreg->SetString("SIDex","c_minlength",sidSetting.c_minlength);
+    xmpfreg->SetInt("SIDex", "c_defaultlength", &sidSetting.c_defaultlength);
+    xmpfreg->SetInt("SIDex", "c_minlength", &sidSetting.c_minlength);
     xmpfreg->SetString("SIDex","c_dbpath",sidSetting.c_dbpath);
-    if (sidSetting.c_lockclockspeed) {
-        xmpfreg->SetString("SIDex","c_lockclockspeed","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_lockclockspeed","0");
-    }
-    if (sidSetting.c_locksidmodel) {
-        xmpfreg->SetString("SIDex","c_locksidmodel","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_locksidmodel","0");
-    }
-    if (sidSetting.c_enablefilter) {
-        xmpfreg->SetString("SIDex","c_enablefilter","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_enablefilter","0");
-    }
-    if (sidSetting.c_enabledigiboost) {
-        xmpfreg->SetString("SIDex","c_enabledigiboost","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_enabledigiboost","0");
-    }
-    if (sidSetting.c_powerdelayrandom) {
-        xmpfreg->SetString("SIDex","c_powerdelayrandom","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_powerdelayrandom","0");
-    }
-    if (sidSetting.c_forcelength) {
-        xmpfreg->SetString("SIDex","c_forcelength","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_forcelength","0");
-    }
-    if (sidSetting.c_skipshort) {
-        xmpfreg->SetString("SIDex","c_skipshort","1");
-    } else {
-        xmpfreg->SetString("SIDex","c_skipshort","0");
-    }
+
+    int ival;
+    ival = sidSetting.c_lockclockspeed;
+    xmpfreg->SetInt("SIDex", "c_lockclockspeed", &ival);
+    ival = sidSetting.c_locksidmodel;
+    xmpfreg->SetInt("SIDex", "c_locksidmodel", &ival);
+    ival = sidSetting.c_enablefilter;
+    xmpfreg->SetInt("SIDex", "c_enablefilter", &ival);
+    ival = sidSetting.c_enabledigiboost;
+    xmpfreg->SetInt("SIDex", "c_enabledigiboost", &ival);
+    ival = sidSetting.c_powerdelayrandom;
+    xmpfreg->SetInt("SIDex", "c_powerdelayrandom", &ival);
+    ival = sidSetting.c_forcelength;
+    xmpfreg->SetInt("SIDex", "c_forcelength", &ival);
+    ival = sidSetting.c_skipshort;
+    xmpfreg->SetInt("SIDex", "c_skipshort", &ival);
     
     if (sidEngine.b_loaded) {
         applyConfig(FALSE);
@@ -994,7 +908,7 @@ static void loadSonglength() {
 static int fetchSonglength(SidTune* sidSong, int sidSubsong) {
     char md5[SidTune::MD5_LENGTH + 1];
     int32_t md5duration = 0;
-    int32_t defaultduration = std::stoi(sidSetting.c_defaultlength);
+    int32_t defaultduration = sidSetting.c_defaultlength;
 
     if (!sidSetting.c_forcelength && sidEngine.d_loadeddbase) {
         md5duration = sidEngine.d_songdbase.length(sidSong->createMD5New(md5), sidSubsong);
@@ -1004,6 +918,32 @@ static int fetchSonglength(SidTune* sidSong, int sidSubsong) {
     }
     
     return defaultduration;
+}
+// get song's tags
+static char *GetTags(const SidTuneInfo* p_songinfo)
+{
+    static const char *tagname[3] = { "title", "artist", "date" };
+    std::string taginfo;
+    for (int a = 0; a < 3; a++) {
+        const char *tag = p_songinfo->infoString(a);
+        if (tag[0]) {
+            char *tagval = xmpftext->Utf8(tag, -1);
+            taginfo.append(tagname[a]);
+            taginfo.push_back('\0');
+            taginfo.append(tagval);
+            taginfo.push_back('\0');
+            xmpfmisc->Free(tagval);
+        }
+    }
+    taginfo.append("filetype");
+    taginfo.push_back('\0');
+    taginfo.append(simpleFormat(p_songinfo->formatString()));
+    taginfo.push_back('\0');
+    taginfo.push_back('\0');
+    int tagsLength = taginfo.size();
+    char *tags = (char*)xmpfmisc->Alloc(tagsLength);
+    memcpy(tags, taginfo.data(), tagsLength);
+    return tags;
 }
 // try to load STIL database
 static void loadSTILbase() {
@@ -1077,23 +1017,12 @@ static void WINAPI SIDex_Init()
         }
     }
 }
-// deinitialise, not actually used
-/*
-static void WINAPI SIDex_Exit()
-{
-    // do a little cleanup
-    if (sidEngine.b_loaded) {
-        delete sidEngine.m_builder;
-        delete sidEngine.m_engine;
-    }
-}
-*/
 
 // general purpose
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v0.8c)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v0.9)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1105,78 +1034,36 @@ static BOOL WINAPI SIDex_CheckFile(const char *filename, XMPFILE file)
 }
 static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float **length, char **tags)
 {
-    SIDlookup sidLookup;
-    sidLookup.p_song = new SidTune(filename);
-    if (!sidLookup.p_song->getStatus()) {
-        delete sidLookup.p_song;
+    SidTune* lu_song;
+    const SidTuneInfo* lu_songinfo;
+    int lu_songcount;
+
+    lu_song = new SidTune(filename);
+    if (!lu_song->getStatus()) {
+        delete lu_song;
         return 0;
-    } else {
-        sidLookup.p_songinfo = sidLookup.p_song->getInfo();
-        sidLookup.p_songcount = sidLookup.p_songinfo->songs();
-        sidLookup.p_songformat = sidLookup.p_songinfo->formatString();
-        sidLookup.p_songtitle = sidLookup.p_songinfo->infoString(0);
-        sidLookup.p_songartist = sidLookup.p_songinfo->infoString(1);
-        sidLookup.p_songreleased = sidLookup.p_songinfo->infoString(2);
-            if (strlen(sidLookup.p_songtitle)>0) {
-                sidLookup.p_songtitle = xmpftext->Utf8(sidLookup.p_songtitle,strlen(sidLookup.p_songtitle));
-            }
-            if (strlen(sidLookup.p_songartist)>0) {
-                sidLookup.p_songartist = xmpftext->Utf8(sidLookup.p_songartist,strlen(sidLookup.p_songartist));
-            }
-            if (strlen(sidLookup.p_songreleased)>0) {
-                sidLookup.p_songreleased = xmpftext->Utf8(sidLookup.p_songreleased,strlen(sidLookup.p_songreleased));
-            }
+    }
+
+    lu_songinfo = lu_song->getInfo();
+    lu_songcount = lu_songinfo->songs();
         
+    if (length) {
         // load lengths
         loadSonglength();
-        sidLookup.p_subsonglength = new int [sidLookup.p_songcount + 1];
-        sidLookup.p_songlength = 0;
-        for (int si=1;si<=sidLookup.p_songcount; si++) {
-            int defaultduration = fetchSonglength(sidLookup.p_song,si);
-            sidLookup.p_subsonglength[si] = defaultduration;
-            sidLookup.p_songlength += defaultduration;
+        float *p = (float*)xmpfmisc->Alloc(lu_songcount * sizeof(float));
+        *length = p;
+        for (int si=1;si<=lu_songcount; si++) {
+            *p = (float)fetchSonglength(lu_song, si);
+            p++;
         }
-        
-        std::string taginfo;
-        taginfo.append("title");
-        taginfo.push_back('\0');
-        taginfo.append(sidLookup.p_songtitle);
-        taginfo.push_back('\0');
-        taginfo.append("artist");
-        taginfo.push_back('\0');
-        taginfo.append(sidLookup.p_songartist);
-        taginfo.push_back('\0');
-        taginfo.append("date");
-        taginfo.push_back('\0');
-        taginfo.append(sidLookup.p_songreleased);
-        taginfo.push_back('\0');
-        taginfo.append("filetype");
-        taginfo.push_back('\0');
-        taginfo.append(simpleFormat(sidLookup.p_songformat));
-        taginfo.push_back('\0');
-        taginfo.push_back('\0');
-        if(length) {
-            float *p = (float*)xmpfmisc->Alloc(sidLookup.p_songcount * sizeof(float));
-            *length = p;
-            for (int si=1;si<=sidLookup.p_songcount; si++) {
-                *p = (float)sidLookup.p_subsonglength[si];
-                p++;
-            }
-        }
-        if (tags) {
-            int tagsLength = taginfo.size();
-            *tags = (char*)xmpfmisc->Alloc(tagsLength);
-            memcpy(*tags, taginfo.data(), tagsLength);
-        }
-
-        xmpfmisc->Free((void*)sidLookup.p_songtitle);
-        xmpfmisc->Free((void*)sidLookup.p_songartist);
-        xmpfmisc->Free((void*)sidLookup.p_songreleased);
-        delete sidLookup.p_subsonglength;
-        delete sidLookup.p_song;
-
-        return sidLookup.p_songcount | XMPIN_INFO_NOSUBTAGS;
     }
+
+    if (tags)
+        *tags = GetTags(lu_songinfo);
+
+    delete lu_song;
+
+    return lu_songcount | XMPIN_INFO_NOSUBTAGS;
 }
 static DWORD WINAPI SIDex_GetSubSongs(float *length) {
     *length = sidEngine.p_songlength;
@@ -1184,36 +1071,12 @@ static DWORD WINAPI SIDex_GetSubSongs(float *length) {
 }
 static char * WINAPI SIDex_GetTags()
 {
-    std::string taginfo;
-    char *tags=NULL;
-    taginfo.append("title");
-    taginfo.push_back('\0');
-    taginfo.append(sidEngine.p_songtitle);
-    taginfo.push_back('\0');
-    taginfo.append("artist");
-    taginfo.push_back('\0');
-    taginfo.append(sidEngine.p_songartist);
-    taginfo.push_back('\0');
-    taginfo.append("date");
-    taginfo.push_back('\0');
-    taginfo.append(sidEngine.p_songreleased);
-    taginfo.push_back('\0');
-    taginfo.append("filetype");
-    taginfo.push_back('\0');
-    taginfo.append(simpleFormat(sidEngine.p_songformat));
-    taginfo.push_back('\0');
-    taginfo.push_back('\0');
-    
-    int tagsLength = taginfo.size();
-    tags = (char*)xmpfmisc->Alloc(tagsLength);
-    memcpy(tags, taginfo.data(), tagsLength);
-    
-    return tags;
+    return GetTags(sidEngine.p_songinfo);
 }
 static void WINAPI SIDex_GetInfoText(char *format, char *length)
 {
     if (format) {
-        strcpy(format, simpleFormat(sidEngine.p_songformat));
+        strcpy(format, simpleFormat(sidEngine.p_songinfo->formatString()));
     }
     if(length) {
         if (length[0]) // got length text in the buffer, append to it
@@ -1226,7 +1089,7 @@ static void WINAPI SIDex_GetGeneralInfo(char *buf)
 {
     static char temp[32]; // buffer for simpleLength
 
-    buf += sprintf(buf, "%s\t%s\r", "Format", sidEngine.p_songformat);
+    buf += sprintf(buf, "%s\t%s\r", "Format", sidEngine.p_songinfo->formatString());
     
     if (sidEngine.p_songcount > 1) { // only display subsong info if there are more than 1
         buf += sprintf(buf, "Subsongs");
@@ -1282,19 +1145,6 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
         } else {
             sidEngine.p_songinfo = sidEngine.p_song->getInfo();
             sidEngine.p_songcount = sidEngine.p_songinfo->songs();
-            sidEngine.p_songformat = sidEngine.p_songinfo->formatString();
-            sidEngine.p_songtitle = sidEngine.p_songinfo->infoString(0);
-            sidEngine.p_songartist = sidEngine.p_songinfo->infoString(1);
-            sidEngine.p_songreleased = sidEngine.p_songinfo->infoString(2);
-                if (strlen(sidEngine.p_songtitle)>0) {
-                    sidEngine.p_songtitle = xmpftext->Utf8(sidEngine.p_songtitle,strlen(sidEngine.p_songtitle));
-                }
-                if (strlen(sidEngine.p_songartist)>0) {
-                    sidEngine.p_songartist = xmpftext->Utf8(sidEngine.p_songartist,strlen(sidEngine.p_songartist));
-                }
-                if (strlen(sidEngine.p_songreleased)>0) {
-                    sidEngine.p_songreleased = xmpftext->Utf8(sidEngine.p_songreleased,strlen(sidEngine.p_songreleased));
-                }
             sidEngine.p_subsong = 1;
             sidEngine.p_song->selectSong(sidEngine.p_subsong);
 
@@ -1325,7 +1175,7 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             }
 
             if (sidEngine.m_engine->load(sidEngine.p_song)) {
-                if (std::stoi(sidSetting.c_defaultlength) == 0) {
+                if (sidSetting.c_defaultlength == 0) {
                     xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
                 } else {
                     xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
@@ -1353,13 +1203,13 @@ static void WINAPI SIDex_Close()
 static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
 {
     // skip short song
-    if (sidSetting.c_skipshort && std::stoi(sidSetting.c_minlength) >= sidEngine.p_subsonglength[sidEngine.p_subsong]) {
+    if (sidSetting.c_skipshort && sidSetting.c_minlength >= sidEngine.p_subsonglength[sidEngine.p_subsong]) {
          return 0;
     }
     
     // process
     sidEngine.p_songpos = sidEngine.m_engine->time();
-    if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong] || std::stoi(sidSetting.c_defaultlength) == 0) {
+    if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong] || sidSetting.c_defaultlength == 0) {
         int sidDone,i;
         short *sidbuffer = new short [count];
         sidDone = sidEngine.m_engine->play(sidbuffer, count);
@@ -1402,7 +1252,7 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
         sidEngine.p_song->selectSong(sidEngine.p_subsong);
         sidEngine.m_engine->load(sidEngine.p_song);
         //
-        if (std::stoi(sidSetting.c_defaultlength) == 0) {
+        if (sidSetting.c_defaultlength == 0) {
             xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
         } else {
             xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
@@ -1465,12 +1315,12 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
                     MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
-                    MESS(IDC_EDIT_DEFAULTLENGTH, WM_GETTEXT, 10, sidSetting.c_defaultlength);
-                    MESS(IDC_EDIT_MINLENGTH, WM_GETTEXT, 10, sidSetting.c_minlength);
+                    sidSetting.c_defaultlength = GetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, NULL, false);
+                    sidSetting.c_minlength = GetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, NULL, false);
                     MESS(IDC_EDIT_POWERDELAY, WM_GETTEXT, 10, sidSetting.c_powerdelay);
                     MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
-                    strcpy(sidSetting.c_6581filter, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).c_str());
-                    strcpy(sidSetting.c_8580filter, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).c_str());
+                    sidSetting.c_6581filter = SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, TBM_GETPOS, 0, 0);
+                    sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
                     
                     // apply configuraton
                     saveConfig();
@@ -1495,10 +1345,10 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             //
             MESS(IDC_SLIDE_6581LEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
             MESS(IDC_SLIDE_6581LEVEL, TBM_SETTICFREQ, 25, 0);
-            MESS(IDC_SLIDE_6581LEVEL, TBM_SETPOS, TRUE, std::stoi(sidSetting.c_6581filter));
+            MESS(IDC_SLIDE_6581LEVEL, TBM_SETPOS, TRUE, sidSetting.c_6581filter);
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETTICFREQ, 25, 0);
-            MESS(IDC_SLIDE_8580LEVEL, TBM_SETPOS, TRUE, std::stoi(sidSetting.c_8580filter));
+            MESS(IDC_SLIDE_8580LEVEL, TBM_SETPOS, TRUE, sidSetting.c_8580filter);
             //
             MESS(IDC_CHECK_LOCKSID, BM_SETCHECK, sidSetting.c_locksidmodel?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_LOCKCLOCK, BM_SETCHECK, sidSetting.c_lockclockspeed?BST_CHECKED:BST_UNCHECKED, 0);
@@ -1507,8 +1357,8 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             MESS(IDC_CHECK_RANDOMDELAY, BM_SETCHECK, sidSetting.c_powerdelayrandom?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_FORCELENGTH, BM_SETCHECK, sidSetting.c_forcelength?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_SKIPSHORT, BM_SETCHECK, sidSetting.c_skipshort?BST_CHECKED:BST_UNCHECKED, 0);
-            SetDlgItemText(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength);
-            SetDlgItemText(hWnd, IDC_EDIT_MINLENGTH, sidSetting.c_minlength);
+            SetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength, false);
+            SetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, sidSetting.c_minlength, false);
             SetDlgItemText(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay);
             SetDlgItemText(hWnd, IDC_EDIT_DBPATH, sidSetting.c_dbpath);
             return TRUE;
@@ -1523,7 +1373,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v0.8c)",
+    "SIDex (v0.9)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
