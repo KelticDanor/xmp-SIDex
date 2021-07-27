@@ -701,7 +701,6 @@ typedef struct
     int p_songcount;
     int p_subsong;
     int p_songlength;
-    int p_songpos;
     int* p_subsonglength;
     char* p_sidmodel;
     char* p_clockspeed;
@@ -1210,7 +1209,7 @@ static void WINAPI SIDex_Close()
         delete sidEngine.p_song;
     }
 }
-int fadeInset,fadeOutset,fadeInsetTtl,fadeOutsetTtl = 0;
+int fadeInset,fadeInsetTtl = 0;
 float fadeFactor;
 static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
 {
@@ -1220,17 +1219,11 @@ static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
     }
     
     // process
-    sidEngine.p_songpos = sidEngine.m_engine->time();
-    if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong] || sidSetting.c_defaultlength == 0) {
-        
+    if (sidEngine.m_engine->time() < sidEngine.p_subsonglength[sidEngine.p_subsong] || sidSetting.c_defaultlength == 0) {
         // fade-in
         if (sidSetting.c_fadein && sidEngine.m_engine->timeMs() == 0) {
             fadeInset = (((float)sidSetting.c_fadeinms / 1000) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
             fadeInsetTtl = fadeInset;
-            
-            //std::ofstream outfile1 ("debug.txt", std::ios_base::app);
-            //outfile1 << "fadeinset: " << fadeInsetTtl << " | " << sidSetting.c_fadeinms << " | " << sidEngine.m_config.frequency << " | " << sidEngine.m_config.playback << std::endl;
-            //outfile1.close();
         }
         
         int sidDone,i;
@@ -1242,16 +1235,10 @@ static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
                 fadeFactor = (float)(1 - ((float)fadeInset / (float)fadeInsetTtl));
                 sidbuffer[i] = sidbuffer[i] * fadeFactor;
                 fadeInset--;
-                
-                //std::ofstream outfile3 ("debug.txt", std::ios_base::app);
-                //outfile3 << "fadeinset_use: " << fadeFactor << std::endl;
-                //outfile3.close();
             }
             buffer[i] = (float)(sidbuffer[i])/32768.f;
         }
         delete sidbuffer;
-
-        sidEngine.p_songpos = sidEngine.m_engine->time();
 
         return sidDone;
     } else {
