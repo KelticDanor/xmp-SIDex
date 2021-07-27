@@ -719,7 +719,6 @@ typedef struct
     int c_6581filter;
     int c_8580filter;
     int c_fadeinms;
-    int c_fadeoutms;
     char c_samplemethod[10];
     char c_dbpath[250];
     bool c_locksidmodel;
@@ -730,7 +729,6 @@ typedef struct
     bool c_forcelength;
     bool c_skipshort;
     bool c_fadein;
-    bool c_fadeout;
 } SIDsetting;
 static SIDsetting sidSetting;
 
@@ -771,7 +769,6 @@ static void loadConfig()
         sidSetting.c_8580filter = 50;
         sidSetting.c_powerdelay = 0;
         sidSetting.c_fadeinms = 500;
-        sidSetting.c_fadeoutms = 5000;
         sidSetting.c_lockclockspeed = FALSE;
         sidSetting.c_locksidmodel = FALSE;
         sidSetting.c_enabledigiboost = FALSE;
@@ -780,7 +777,6 @@ static void loadConfig()
         sidSetting.c_forcelength = FALSE;
         sidSetting.c_skipshort = FALSE;
         sidSetting.c_fadein = TRUE;
-        sidSetting.c_fadeout = FALSE;
         
         if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
             xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
@@ -792,7 +788,6 @@ static void loadConfig()
             xmpfreg->GetInt("SIDex","c_8580filter", &sidSetting.c_8580filter);
             xmpfreg->GetInt("SIDex","c_powerdelay", &sidSetting.c_powerdelay);
             xmpfreg->GetInt("SIDex","c_fadeinms", &sidSetting.c_fadeinms);
-            xmpfreg->GetInt("SIDex","c_fadeoutms", &sidSetting.c_fadeoutms);
             
             int ival;
             if (xmpfreg->GetInt("SIDex", "c_lockclockspeed", &ival))
@@ -811,8 +806,6 @@ static void loadConfig()
                 sidSetting.c_skipshort = ival;
             if (xmpfreg->GetInt("SIDex", "c_fadein", &ival))
                 sidSetting.c_fadein = ival;
-            if (xmpfreg->GetInt("SIDex", "c_fadeout", &ival))
-                sidSetting.c_fadeout = ival;
         }
     }
 }
@@ -883,7 +876,6 @@ static void saveConfig()
     xmpfreg->SetInt("SIDex", "c_defaultlength", &sidSetting.c_defaultlength);
     xmpfreg->SetInt("SIDex", "c_minlength", &sidSetting.c_minlength);
     xmpfreg->SetInt("SIDex", "c_fadeinms", &sidSetting.c_fadeinms);
-    xmpfreg->SetInt("SIDex", "c_fadeoutms", &sidSetting.c_fadeoutms);
 
     int ival;
     ival = sidSetting.c_lockclockspeed;
@@ -902,8 +894,6 @@ static void saveConfig()
     xmpfreg->SetInt("SIDex", "c_skipshort", &ival);
     ival = sidSetting.c_fadein;
     xmpfreg->SetInt("SIDex", "c_fadein", &ival);
-    ival = sidSetting.c_fadeout;
-    xmpfreg->SetInt("SIDex", "c_fadeout", &ival);
     
     if (sidEngine.b_loaded) {
         applyConfig(FALSE);
@@ -1220,6 +1210,8 @@ static void WINAPI SIDex_Close()
         delete sidEngine.p_song;
     }
 }
+int fadeInset,fadeOutset,fadeInsetTtl,fadeOutsetTtl = 0;
+float fadeFactor;
 static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
 {
     // skip short song
@@ -1230,10 +1222,31 @@ static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
     // process
     sidEngine.p_songpos = sidEngine.m_engine->time();
     if (sidEngine.p_songpos < sidEngine.p_subsonglength[sidEngine.p_subsong] || sidSetting.c_defaultlength == 0) {
+        
+        // fade-in
+        if (sidSetting.c_fadein && sidEngine.m_engine->timeMs() == 0) {
+            fadeInset = (((float)sidSetting.c_fadeinms / 1000) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
+            fadeInsetTtl = fadeInset;
+            
+            //std::ofstream outfile1 ("debug.txt", std::ios_base::app);
+            //outfile1 << "fadeinset: " << fadeInsetTtl << " | " << sidSetting.c_fadeinms << " | " << sidEngine.m_config.frequency << " | " << sidEngine.m_config.playback << std::endl;
+            //outfile1.close();
+        }
+        
         int sidDone,i;
         short *sidbuffer = new short [count];
         sidDone = sidEngine.m_engine->play(sidbuffer, count);
         for (i=0;i<sidDone;i++) {
+            // perform fade-in
+            if (sidSetting.c_fadein && fadeInset > 0) {
+                fadeFactor = (float)(1 - ((float)fadeInset / (float)fadeInsetTtl));
+                sidbuffer[i] = sidbuffer[i] * fadeFactor;
+                fadeInset--;
+                
+                //std::ofstream outfile3 ("debug.txt", std::ios_base::app);
+                //outfile3 << "fadeinset_use: " << fadeFactor << std::endl;
+                //outfile3.close();
+            }
             buffer[i] = (float)(sidbuffer[i])/32768.f;
         }
         delete sidbuffer;
@@ -1321,9 +1334,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                 case IDC_SLIDE_8580LEVEL:
                     MESS(IDC_LABEL_8580LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
                 case IDC_SLIDE_FADEINLEVEL:
-                    MESS(IDC_LABEL_FADEINLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,3).append("s").c_str());
-                case IDC_SLIDE_FADEOUTLEVEL:
-                    MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,3).append("s").c_str());
+                    MESS(IDC_LABEL_FADEINLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 100.f).substr(0,4).append("s").c_str());
             }
             break;
         case WM_COMMAND:
@@ -1337,7 +1348,6 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     sidSetting.c_forcelength = (BST_CHECKED==MESS(IDC_CHECK_FORCELENGTH, BM_GETCHECK, 0, 0));
                     sidSetting.c_skipshort = (BST_CHECKED==MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0));
                     sidSetting.c_fadein = (BST_CHECKED==MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0));
-                    sidSetting.c_fadeout = (BST_CHECKED==MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0));
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
                     MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
@@ -1347,8 +1357,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     sidSetting.c_powerdelay = GetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, NULL, false);
                     sidSetting.c_6581filter = SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, TBM_GETPOS, 0, 0);
                     sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
-                    sidSetting.c_fadeinms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, TBM_GETPOS, 0, 0) * 100;
-                    sidSetting.c_fadeoutms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, TBM_GETPOS, 0, 0) * 100;
+                    sidSetting.c_fadeinms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, TBM_GETPOS, 0, 0) * 10;
                     
                     // apply configuraton
                     saveConfig();
@@ -1378,12 +1387,9 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETTICFREQ, 25, 0);
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETPOS, TRUE, sidSetting.c_8580filter);
             //
-            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 20));
+            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 50));
             MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETTICFREQ, 5, 0);
-            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETPOS, TRUE, sidSetting.c_fadeinms / 100);
-            MESS(IDC_SLIDE_FADEOUTLEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
-            MESS(IDC_SLIDE_FADEOUTLEVEL, TBM_SETTICFREQ, 25, 0);
-            MESS(IDC_SLIDE_FADEOUTLEVEL, TBM_SETPOS, TRUE, sidSetting.c_fadeoutms / 100);
+            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETPOS, TRUE, sidSetting.c_fadeinms / 10);
             //
             MESS(IDC_CHECK_LOCKSID, BM_SETCHECK, sidSetting.c_locksidmodel?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_LOCKCLOCK, BM_SETCHECK, sidSetting.c_lockclockspeed?BST_CHECKED:BST_UNCHECKED, 0);
@@ -1393,7 +1399,6 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             MESS(IDC_CHECK_FORCELENGTH, BM_SETCHECK, sidSetting.c_forcelength?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_SKIPSHORT, BM_SETCHECK, sidSetting.c_skipshort?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_FADEIN, BM_SETCHECK, sidSetting.c_fadein?BST_CHECKED:BST_UNCHECKED, 0);
-            MESS(IDC_CHECK_FADEOUT, BM_SETCHECK, sidSetting.c_fadeout?BST_CHECKED:BST_UNCHECKED, 0);
             SetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength, false);
             SetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, sidSetting.c_minlength, false);
             SetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay, false);
