@@ -16,7 +16,6 @@ The current release has some issues as follows
 ### Change Log
 v0.9
 - Lots of tidy ups of unnecessary code by Ian :)
-- SidDatabase.cpp patched properly to fix crash processing Songlengths.md5 times
 
 v0.8d
 - [d] SidDatabase.cpp patched to fix crash processing Songlengths.md5 times
