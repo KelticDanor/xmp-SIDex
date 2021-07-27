@@ -1220,7 +1220,7 @@ static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
     
     // process
     if (sidEngine.m_engine->time() < sidEngine.p_subsonglength[sidEngine.p_subsong] || sidSetting.c_defaultlength == 0) {
-        // fade-in
+        // set-up fade-in
         if (sidSetting.c_fadein && sidEngine.m_engine->timeMs() == 0) {
             fadeInset = (((float)sidSetting.c_fadeinms / 1000) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
             fadeInsetTtl = fadeInset;
