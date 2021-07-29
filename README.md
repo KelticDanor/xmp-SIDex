@@ -7,12 +7,16 @@ This is a somewhat questionably written plug-in to play SID files using the libs
 ### Wish List
 Currently looking at the following
 - Add SIDid identifying players
-- Add fancy volume ramp/click detection/removal at the start of sid playback.
 
 ### Change Log
 v0.9
 - Lots of tidy ups of silly billy code by Ian :)
-- Added a configurable fade-in option to try and hide clicks
+- Added a configurable fade-in option to try and hide clicks, Ian fancied it up to a... *googles spelling* logarithmic one. :o
+- Lock sid model, lock clock speed & 8580 digi-boost now only applies on restart
+- Main info sid model/clock speed display now gets details from the engine itself
+- Stopping or seeking to the start of the file should work as expected
+- Added disable seeking option
+- Options fixed to disable fields appropriately to better show states
 
 v0.8d
 - [d] SidDatabase.cpp patched to fix crash processing Songlengths.md5 times
