@@ -694,7 +694,6 @@ typedef struct
     SidConfig m_config;
     SidDatabase d_songdbase;
     STIL d_stilbase;
-    XMPFILE xmpfile;
     bool d_loadeddbase;
     bool d_loadedstil;
     const SidTuneInfo* p_songinfo;
@@ -705,6 +704,8 @@ typedef struct
     char* p_sidmodel;
     char* p_clockspeed;
     bool b_loaded;
+
+    float fadein;
 } SIDengine;
 static SIDengine sidEngine;
 
@@ -728,6 +729,7 @@ typedef struct
     bool c_forcelength;
     bool c_skipshort;
     bool c_fadein;
+    bool c_disableseek;
 } SIDsetting;
 static SIDsetting sidSetting;
 
@@ -776,6 +778,7 @@ static void loadConfig()
         sidSetting.c_forcelength = FALSE;
         sidSetting.c_skipshort = FALSE;
         sidSetting.c_fadein = TRUE;
+        sidSetting.c_disableseek = TRUE;
         
         if (xmpfreg->GetString("SIDex","c_sidmodel",sidSetting.c_sidmodel,10) != 0) {
             xmpfreg->GetString("SIDex","c_clockspeed",sidSetting.c_clockspeed,10);
@@ -805,6 +808,8 @@ static void loadConfig()
                 sidSetting.c_skipshort = ival;
             if (xmpfreg->GetInt("SIDex", "c_fadein", &ival))
                 sidSetting.c_fadein = ival;
+            if (xmpfreg->GetInt("SIDex", "c_disableseek", &ival))
+                sidSetting.c_disableseek = ival;
         }
     }
 }
@@ -839,14 +844,14 @@ static bool applyConfig(bool initThis) {
         } else if (std::string(sidSetting.c_samplemethod).find("Accurate") != std::string::npos) {
             sidEngine.m_config.samplingMethod = SidConfig::RESAMPLE_INTERPOLATE;
         }
+
+        // apply sid model & clock speed lock
+        sidEngine.m_config.forceSidModel = sidSetting.c_locksidmodel;
+        sidEngine.m_config.forceC64Model = sidSetting.c_lockclockspeed;
+        
+        // apply digi boost
+        sidEngine.m_config.digiBoost = sidSetting.c_enabledigiboost;
     }
-    
-    // apply sid model & clock speed lock
-    sidEngine.m_config.forceSidModel = sidSetting.c_locksidmodel;
-    sidEngine.m_config.forceC64Model = sidSetting.c_lockclockspeed;
-    
-    // apply digi boost
-    sidEngine.m_config.digiBoost = sidSetting.c_enabledigiboost;
     
     // apply filter status & levels
     sidEngine.m_builder->filter(sidSetting.c_enablefilter);
@@ -893,6 +898,8 @@ static void saveConfig()
     xmpfreg->SetInt("SIDex", "c_skipshort", &ival);
     ival = sidSetting.c_fadein;
     xmpfreg->SetInt("SIDex", "c_fadein", &ival);
+    ival = sidSetting.c_disableseek;
+    xmpfreg->SetInt("SIDex", "c_disableseek", &ival);
     
     if (sidEngine.b_loaded) {
         applyConfig(FALSE);
@@ -1059,11 +1066,9 @@ static DWORD WINAPI SIDex_GetFileInfo(const char *filename, XMPFILE file, float 
     if (length) {
         // load lengths
         loadSonglength();
-        float *p = (float*)xmpfmisc->Alloc(lu_songcount * sizeof(float));
-        *length = p;
+        *length = (float*)xmpfmisc->Alloc(lu_songcount * sizeof(float));
         for (int si=1;si<=lu_songcount; si++) {
-            *p = (float)fetchSonglength(lu_song, si);
-            p++;
+            (*length)[si - 1] = fetchSonglength(lu_song, si);
         }
     }
 
@@ -1158,15 +1163,23 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             sidEngine.p_song->selectSong(sidEngine.p_subsong);
 
             // Figure out sid model and clock speed
-            if (sidSetting.c_locksidmodel || sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_ANY || sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_UNKNOWN) {
-                sidEngine.p_sidmodel = sidSetting.c_sidmodel;
+            if (sidEngine.m_config.forceSidModel || sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_ANY || sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_UNKNOWN) {
+                if (sidEngine.m_config.defaultSidModel == SidConfig::MOS6581) {
+                    sidEngine.p_sidmodel = "6581";
+                } else if (sidEngine.m_config.defaultSidModel == SidConfig::MOS8580) {
+                    sidEngine.p_sidmodel = "8580";
+                }
             } else if (sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_6581) {
                 sidEngine.p_sidmodel = "6581";
             } else if (sidEngine.p_songinfo->sidModel(0) == SidTuneInfo::SIDMODEL_8580) {
                 sidEngine.p_sidmodel = "8580";
             }
-            if (sidSetting.c_lockclockspeed || sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_ANY || sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_UNKNOWN) {
-                sidEngine.p_clockspeed = sidSetting.c_clockspeed;
+            if (sidEngine.m_config.forceC64Model || sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_ANY || sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_UNKNOWN) {
+                if (sidEngine.m_config.defaultC64Model == SidConfig::PAL) {
+                    sidEngine.p_clockspeed = "PAL";
+                } else if (sidEngine.m_config.defaultC64Model == SidConfig::NTSC) {
+                    sidEngine.p_clockspeed = "NTSC";
+                }
             } else if (sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_PAL) {
                 sidEngine.p_clockspeed = "PAL";
             } else if (sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_NTSC) {
@@ -1184,12 +1197,12 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             }
 
             if (sidEngine.m_engine->load(sidEngine.p_song)) {
-                if (sidSetting.c_defaultlength == 0) {
+                if (sidSetting.c_defaultlength == 0 || sidSetting.c_disableseek) {
                     xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
                 } else {
                     xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
                 }
-                sidEngine.xmpfile = file;
+                sidEngine.fadein = 0; // trigger fade-in
                 return 2;
             } else {
                 return 0;
@@ -1209,8 +1222,6 @@ static void WINAPI SIDex_Close()
         delete sidEngine.p_song;
     }
 }
-int fadeInset,fadeInsetTtl = 0;
-float fadeFactor;
 static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
 {
     // skip short song
@@ -1221,22 +1232,27 @@ static DWORD WINAPI SIDex_Process(float *buffer, DWORD count)
     // process
     if (sidEngine.m_engine->time() < sidEngine.p_subsonglength[sidEngine.p_subsong] || sidSetting.c_defaultlength == 0) {
         // set-up fade-in
-        if (sidSetting.c_fadein && sidEngine.m_engine->timeMs() == 0) {
-            fadeInset = (((float)sidSetting.c_fadeinms / 1000) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
-            fadeInsetTtl = fadeInset;
+        float fadestep;
+        if (sidEngine.fadein < 1) {
+            if (sidSetting.c_fadein && sidSetting.c_fadeinms > 0) {
+                if (!sidEngine.fadein) sidEngine.fadein = 0.001;
+                fadestep = pow(10, 3000.0 / sidSetting.c_fadeinms / (sidEngine.m_config.frequency * sidEngine.m_config.playback));
+            } else
+                sidEngine.fadein = 1;
         }
         
         int sidDone,i;
         short *sidbuffer = new short [count];
         sidDone = sidEngine.m_engine->play(sidbuffer, count);
         for (i=0;i<sidDone;i++) {
+            float scale = 1 / 32768.f;
             // perform fade-in
-            if (sidSetting.c_fadein && fadeInset > 0) {
-                fadeFactor = (float)(1 - ((float)fadeInset / (float)fadeInsetTtl));
-                sidbuffer[i] = sidbuffer[i] * fadeFactor;
-                fadeInset--;
+            if (sidEngine.fadein < 1) {
+                sidEngine.fadein *= fadestep;
+                if (sidEngine.fadein > 1) sidEngine.fadein = 1;
+                scale *= sidEngine.fadein;
             }
-            buffer[i] = (float)(sidbuffer[i])/32768.f;
+            buffer[i] = (float)(sidbuffer[i]) * scale;
         }
         delete sidbuffer;
 
@@ -1249,10 +1265,9 @@ static void WINAPI SIDex_SetFormat(XMPFORMAT *form)
 {
     // changing format seems to rewind the SID decoder? so only do that at start
     if (!sidEngine.m_engine->timeMs()) {
-        sidEngine.m_config = sidEngine.m_engine->config();
         sidEngine.m_config.frequency = std::max<DWORD>(form->rate, 8000);
         sidEngine.m_config.playback = (SidConfig::playback_t)std::min<DWORD>(form->chan, 2);
-        sidEngine.m_engine->config(sidEngine.m_config);
+        applyConfig(FALSE);
     }
     form->rate = sidEngine.m_config.frequency;
     form->chan = sidEngine.m_config.playback;
@@ -1272,36 +1287,41 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
         sidEngine.p_song->selectSong(sidEngine.p_subsong);
         sidEngine.m_engine->load(sidEngine.p_song);
         //
-        if (sidSetting.c_defaultlength == 0) {
+        if (sidSetting.c_defaultlength == 0 || sidSetting.c_disableseek) {
             xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], FALSE);
         } else {
             xmpfin->SetLength(sidEngine.p_subsonglength[sidEngine.p_subsong], TRUE);
         }
+        sidEngine.fadein = 0; // trigger fade-in (needed?)
         xmpfin->UpdateTitle(NULL);
         //
         return 0;
     } else {
-        int seekTarget = pos * SIDex_GetGranularity();
-        int seekState = sidEngine.m_engine->time();
+        double seekTarget = pos * SIDex_GetGranularity();
+        double seekState = sidEngine.m_engine->timeMs() / 1000.0;
         int seekResult;
 
+        if (seekTarget == seekState)
+            return seekTarget;
+
         //oh dear we have to go back
-        if (seekTarget <= seekState) {
+        if (seekTarget < seekState) {
             if (sidEngine.m_engine->isPlaying()) {
                 sidEngine.m_engine->stop();
+                sidEngine.m_engine->load(0);
+                sidEngine.m_engine->load(sidEngine.p_song);
             }
-            sidEngine.m_engine->load(sidEngine.p_song);
             seekState = 0;
-            seekTarget += 1;
         }
 
         //attempt to seek
-        int seekCount = ((seekTarget - seekState) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
+        int seekCount = (int)((seekTarget - seekState) * sidEngine.m_config.frequency) * sidEngine.m_config.playback;
         short * seekBuffer = new short[seekCount];
         seekResult = sidEngine.m_engine->play(seekBuffer, seekCount);
         delete seekBuffer;
         if (seekResult == seekCount) {
-            return sidEngine.m_engine->time();
+            sidEngine.fadein = pos ? 1 : 0; // trigger fade-in if restarting
+            return seekTarget;
         } else {
             return -1;
         }
@@ -1312,10 +1332,47 @@ static double WINAPI SIDex_SetPosition(DWORD pos)
 #define MESS(id,m,w,l) SendDlgItemMessage(hWnd,id,m,(WPARAM)(w),(LPARAM)(l))
 static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-    int tempVar;
     switch (msg) {
         case WM_NOTIFY:
             switch (LOWORD(wParam)) {
+                case IDC_CHECK_ENABLEFILTER:
+                    if (MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0)) {
+                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_6581LEVEL), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_8580LEVEL), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_6581LEVEL), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_8580LEVEL), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), TRUE);
+                    } else {
+                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_6581LEVEL), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_8580LEVEL), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_6581LEVEL), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_8580LEVEL), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), FALSE);
+                    }
+                case IDC_CHECK_FADEIN:
+                    if (MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0)) {
+                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), TRUE);
+                    } else {
+                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), FALSE);
+                    }
+                case IDC_CHECK_SKIPSHORT:
+                    if (MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0)) {
+                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), TRUE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), TRUE);
+                    } else {
+                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), FALSE);
+                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), FALSE);
+                    }
+                case IDC_CHECK_RANDOMDELAY:
+                    if (MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0)) {
+                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), FALSE);
+                    } else {
+                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), TRUE);
+                    }
                 case IDC_SLIDE_6581LEVEL:
                     MESS(IDC_LABEL_6581LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
                 case IDC_SLIDE_8580LEVEL:
@@ -1335,6 +1392,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     sidSetting.c_forcelength = (BST_CHECKED==MESS(IDC_CHECK_FORCELENGTH, BM_GETCHECK, 0, 0));
                     sidSetting.c_skipshort = (BST_CHECKED==MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0));
                     sidSetting.c_fadein = (BST_CHECKED==MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0));
+                    sidSetting.c_disableseek = (BST_CHECKED==MESS(IDC_CHECK_DISABLESEEK, BM_GETCHECK, 0, 0));
                     MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
                     MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
                     MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
@@ -1354,18 +1412,15 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             }
             break;
         case WM_INITDIALOG:
-            HWND szSidmodel = GetDlgItem(hWnd, IDC_COMBO_SID);
-            SendMessage(szSidmodel, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("6581"));
-            SendMessage(szSidmodel, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("8580"));
-            SendMessage(szSidmodel, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_sidmodel);
-            HWND szClockspeed = GetDlgItem(hWnd, IDC_COMBO_CLOCK);
-            SendMessage(szClockspeed, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("PAL"));
-            SendMessage(szClockspeed, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("NTSC"));
-            SendMessage(szClockspeed, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_clockspeed);
-            HWND szSamplemethod = GetDlgItem(hWnd, IDC_COMBO_SAMPLEMETHOD);
-            SendMessage(szSamplemethod, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Normal"));
-            SendMessage(szSamplemethod, (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Accurate"));
-            SendMessage(szSamplemethod, CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_samplemethod);
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_SID), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("6581"));
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_SID), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("8580"));
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_SID), CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_sidmodel);
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_CLOCK), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("PAL"));
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_CLOCK), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("NTSC"));
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_CLOCK), CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_clockspeed);
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_SAMPLEMETHOD), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Normal"));
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_SAMPLEMETHOD), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("Accurate"));
+            SendMessage(GetDlgItem(hWnd, IDC_COMBO_SAMPLEMETHOD), CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_samplemethod);
             //
             MESS(IDC_SLIDE_6581LEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
             MESS(IDC_SLIDE_6581LEVEL, TBM_SETTICFREQ, 25, 0);
@@ -1373,17 +1428,17 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 100));
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETTICFREQ, 25, 0);
             MESS(IDC_SLIDE_8580LEVEL, TBM_SETPOS, TRUE, sidSetting.c_8580filter);
-            //
-            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 50));
-            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETTICFREQ, 5, 0);
+            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETRANGE, TRUE, MAKELONG(0, 30));
+            MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETTICFREQ, 2, 0);
             MESS(IDC_SLIDE_FADEINLEVEL, TBM_SETPOS, TRUE, sidSetting.c_fadeinms / 10);
             //
             MESS(IDC_CHECK_LOCKSID, BM_SETCHECK, sidSetting.c_locksidmodel?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_LOCKCLOCK, BM_SETCHECK, sidSetting.c_lockclockspeed?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_ENABLEFILTER, BM_SETCHECK, sidSetting.c_enablefilter?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_DIGIBOOST, BM_SETCHECK, sidSetting.c_enabledigiboost?BST_CHECKED:BST_UNCHECKED, 0);
-            MESS(IDC_CHECK_RANDOMDELAY, BM_SETCHECK, sidSetting.c_powerdelayrandom?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_FORCELENGTH, BM_SETCHECK, sidSetting.c_forcelength?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_RANDOMDELAY, BM_SETCHECK, sidSetting.c_powerdelayrandom?BST_CHECKED:BST_UNCHECKED, 0);
+            MESS(IDC_CHECK_DISABLESEEK, BM_SETCHECK, sidSetting.c_disableseek?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_SKIPSHORT, BM_SETCHECK, sidSetting.c_skipshort?BST_CHECKED:BST_UNCHECKED, 0);
             MESS(IDC_CHECK_FADEIN, BM_SETCHECK, sidSetting.c_fadein?BST_CHECKED:BST_UNCHECKED, 0);
             SetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, sidSetting.c_defaultlength, false);
@@ -1464,11 +1519,11 @@ XMPIN *WINAPI XMPIN_GetInterface(DWORD face, InterfaceProc faceproc)
 
 BOOL WINAPI DllMain(HINSTANCE hDLL, DWORD reason, LPVOID reserved)
 {
-	switch (reason) {
-            case DLL_PROCESS_ATTACH:
-                ghInstance = (HINSTANCE)hDLL;
-                DisableThreadLibraryCalls((HMODULE)hDLL);
-                break;
-	}
-	return TRUE;
+    switch (reason) {
+        case DLL_PROCESS_ATTACH:
+            ghInstance = (HINSTANCE)hDLL;
+            DisableThreadLibraryCalls((HMODULE)hDLL);
+            break;
+    }
+    return TRUE;
 }
