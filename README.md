@@ -8,7 +8,7 @@ This is a somewhat questionably written plug-in to play SID files using the libs
 v1.0
 - Added fade-out option
 - Added detect music player option
-	Note: Requires sidid.cfg to be located in the DOCUMENTS/ folder
+	[Note: Requires sidid.cfg to be located in the DOCUMENTS/ folder]
 - Settings page has been rearranged slightly, it is a little glitchy, I'm okay with it
 
 v0.9
@@ -58,7 +58,7 @@ v0.5
 - Main panel should correctly indicate tune sid model and clock speed now
 - Added [b]VERY[/b] rudimentary STIL support, might actually cause crashes so use with caution
 - Turns out relative/full paths were already supported, I just forgot out it worked. (Eg. ../C64Music/DOCUMENTS/) 
-     Note the leading / for relative or \ for full paths is important because of reasons
+     [Note the leading / for relative or \ for full paths is important because of reasons]
      
 v0.4
 - Seeking sort of enabled, it is probably a bit janky
