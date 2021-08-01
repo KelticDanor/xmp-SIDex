@@ -4,11 +4,13 @@ SID Input Plugin for the XMPlay audio player
 ### Description
 This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.1 library, it is also my first input plug in so be gentle.
 
-### Wish List
-Currently looking at the following
-- Add SIDid identifying players
-
 ### Change Log
+v1.0
+- Added fade-out option
+- Added detect music player option
+	Note: Requires sidid.cfg to be located in the DOCUMENTS/ folder
+- Settings page has been rearranged slightly, it is a little glitchy, I'm okay with it
+
 v0.9
 - Lots of tidy ups of silly billy code by Ian :)
 - Added a configurable fade-in option to try and hide clicks, Ian fancied it up to a... *googles spelling* logarithmic one. :o
