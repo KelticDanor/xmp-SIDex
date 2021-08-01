@@ -6,6 +6,7 @@
                    projectFiles="true">
       <itemPath>configdialog.h</itemPath>
       <itemPath>export.h</itemPath>
+      <itemPath>sidid/sidid.h</itemPath>
       <itemPath>xmplay/xmpfunc.h</itemPath>
       <itemPath>xmplay/xmpin.h</itemPath>
     </logicalFolder>
@@ -63,7 +64,8 @@
       <itemPath>libsidplayfp/src/builders/residfp-builder/residfp-emu.cpp</itemPath>
       <itemPath>libsidplayfp/src/sidplayfp/sidbuilder.cpp</itemPath>
       <itemPath>libsidplayfp/src/sidemu.cpp</itemPath>
-      <itemPath>sidex2.cpp</itemPath>
+      <itemPath>sidex.cpp</itemPath>
+      <itemPath>sidid/sidid.cpp</itemPath>
       <itemPath>libsidplayfp/src/sidplayfp/sidplayfp.cpp</itemPath>
       <itemPath>libsidplayfp/src/utils/STILview/stil.cpp</itemPath>
       <itemPath>libsidplayfp/src/c64/CIA/timer.cpp</itemPath>
@@ -85,6 +87,7 @@
   <sourceRootList>
     <Elem>libsidplayfp/src</Elem>
     <Elem>xmplay</Elem>
+    <Elem>sidid</Elem>
   </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
@@ -345,7 +348,11 @@
             tool="1"
             flavor2="0">
       </item>
-      <item path="sidex2.cpp" ex="false" tool="1" flavor2="0">
+      <item path="sidex.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="sidid/sidid.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="sidid/sidid.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="xmplay/xmpfunc.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -373,6 +380,7 @@
             <pElem>libsidplayfp/src</pElem>
             <pElem>libsidplayfp/src/builders/residfp-builder</pElem>
             <pElem>libsidplayfp/src/builders/residfp-builder/residfp</pElem>
+            <pElem>sidid</pElem>
           </incDir>
           <incFile>
             <pElem>xmplay/xmpin.h</pElem>
@@ -613,7 +621,11 @@
             tool="1"
             flavor2="0">
       </item>
-      <item path="sidex2.cpp" ex="false" tool="1" flavor2="0">
+      <item path="sidex.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="sidid/sidid.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="sidid/sidid.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="xmplay/xmpfunc.h" ex="false" tool="3" flavor2="0">
       </item>

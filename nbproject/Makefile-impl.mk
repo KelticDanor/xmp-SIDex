@@ -24,7 +24,7 @@ CLEAN_SUBPROJECTS=${CLEAN_SUBPROJECTS_${SUBPROJECTS}}
 
 
 # Project Name
-PROJECTNAME=xmp-sidex2
+PROJECTNAME=xmp-sidex
 
 # Active Configuration
 DEFAULTCONF=Debug

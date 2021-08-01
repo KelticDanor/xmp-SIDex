@@ -85,7 +85,8 @@ OBJECTFILES= \
 	${OBJECTDIR}/libsidplayfp/src/utils/SidDatabase.o \
 	${OBJECTDIR}/libsidplayfp/src/utils/iniParser.o \
 	${OBJECTDIR}/libsidplayfp/src/utils/md5Factory.o \
-	${OBJECTDIR}/sidex2.o
+	${OBJECTDIR}/sidex.o \
+	${OBJECTDIR}/sidid/sidid.o
 
 
 # C Compiler Flags
@@ -362,10 +363,15 @@ ${OBJECTDIR}/libsidplayfp/src/utils/md5Factory.o: libsidplayfp/src/utils/md5Fact
 	${RM} "$@.d"
 	$(COMPILE.cc) -g -w -DWIN32 -DWINDOWS -Ixmplay -Ilibsidplayfp/src -Ilibsidplayfp/src/builders/residfp-builder -Ilibsidplayfp/src/builders/residfp-builder/residfp -include xmplay/xmpin.h -include xmplay/xmpfunc.h -std=c++11  -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/libsidplayfp/src/utils/md5Factory.o libsidplayfp/src/utils/md5Factory.cpp
 
-${OBJECTDIR}/sidex2.o: sidex2.cpp
+${OBJECTDIR}/sidex.o: sidex.cpp
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -w -DWIN32 -DWINDOWS -Ixmplay -Ilibsidplayfp/src -Ilibsidplayfp/src/builders/residfp-builder -Ilibsidplayfp/src/builders/residfp-builder/residfp -include xmplay/xmpin.h -include xmplay/xmpfunc.h -std=c++11  -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/sidex2.o sidex2.cpp
+	$(COMPILE.cc) -g -w -DWIN32 -DWINDOWS -Ixmplay -Ilibsidplayfp/src -Ilibsidplayfp/src/builders/residfp-builder -Ilibsidplayfp/src/builders/residfp-builder/residfp -include xmplay/xmpin.h -include xmplay/xmpfunc.h -std=c++11  -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/sidex.o sidex.cpp
+
+${OBJECTDIR}/sidid/sidid.o: sidid/sidid.cpp
+	${MKDIR} -p ${OBJECTDIR}/sidid
+	${RM} "$@.d"
+	$(COMPILE.cc) -g -w -DWIN32 -DWINDOWS -Ixmplay -Ilibsidplayfp/src -Ilibsidplayfp/src/builders/residfp-builder -Ilibsidplayfp/src/builders/residfp-builder/residfp -include xmplay/xmpin.h -include xmplay/xmpfunc.h -std=c++11  -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/sidid/sidid.o sidid/sidid.cpp
 
 # Subprojects
 .build-subprojects:
