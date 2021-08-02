@@ -1,10 +1,37 @@
 # xmp-SIDex
 SID Input Plugin for the XMPlay audio player
 
+
 ### Description
-This is a somewhat questionably written plug-in to play SID files using the libsidplayfp-2.2.1 library, it is also my first input plug in so be gentle.
+This is brand spanking new plug-in to play SID files using the libsidplayfp-2.2.0 library.
+
+- Fade-in support to try and remove clicks
+- SLDB, STIL, BUGlist from HVSC supported
+- Configurable SIDId support via sidid.cfg files
+- stiltxt2md5 tool to support STIL outside of HVSC folders
+
+
+### STILtxt2md5
+This is a simply commandline to convert the existing STIL.txt and BUGlist.txt to md5 versions 
+that don't require the SID you are playing to be in the HVSC folder structure.
+
+It adds a few hundred KB to the size but nothing too bad, it has been added as a command line
+so you can run it again whenever you update your HVSC to the latest version.
+
+
+### SIDId Support
+xmp-sidex does not keep a copy of the SIDId database internally but a sidid.cfg file is
+included in the archive. Copy the sidid.cfg folder to wherever you point the HVSC
+DOCUMENTS/ path to.
+
+You can also download the latest sidid.cfg file from the SIDId GitHub here: https://github.com/cadaver/sidid
+
 
 ### Change Log
+v1.1
+- Added md5 lookup alternative for files outside of HVSC directory
+	[Note: Requires stiltxt2md5 to be run in the DOCUMENTS/ folder first]
+
 v1.0
 - Added fade-out option
 - Added detect music player option
@@ -72,11 +99,14 @@ v0.2
 - Corrected time shown in the main display info
 
 v0.1
-- Initial working version, HUGE thanks to drfiemost (Leandro Nini) for their help along the way.
-- Thanks also to the following who had source code/suggestions which were valuable throughout
-	* emoon (Daniel Collin) / HippoPlayer
-	* kode54 (Christopher Snowhill) / foo_sid
-	* z80maniac (Alexey Parfenov) / zxtune
-	* zbych-r / in_sidplay2
-	* Ian Luck / XMPlay + flac input plugin sample
-	* the whole libsidplayfp-2.2.0 team
+- Initial working version
+
+### Big Thanks To
+- Ian Luck ~~~ Code references, logarithmic fade effects and a metric TON of code fixes throughout
+- drfiemost (Leandro Nini) ~~~ All the help along the way
+- emoon (Daniel Collin) ~~~ Help building libsidplayfp in the first place & code references in HippoPlayer
+- hermansr (Roland Hermans) ~~~ Code references in PSID64 adding SIDId support
+- cadaver (Lasse Öörni) ~~~ Code references in SIDId and sidid.cfg files
+- kode54 (Christopher Snowhill) ~~~ Code references in foo_sid
+- z80maniac (Alexey Parfenov) ~~~ Code references in xmp-zxtune
+- zbych-r / in_sidplay2 ~~~ Code references in in_sidplay2
