@@ -698,6 +698,7 @@ typedef struct
     SidId d_sididbase;
     bool d_loadeddbase;
     bool d_loadedstil;
+    bool d_loadedstilmd5;
     bool d_loadedsidid;
     char p_sididplayer[25];
     const SidTuneInfo* p_songinfo;
@@ -993,8 +994,55 @@ static void loadSTILbase() {
             sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
         }
     }
+    if (!sidEngine.d_loadedstilmd5 && strlen(sidSetting.c_dbpath)>10) {
+        std::string relpathName = sidSetting.c_dbpath;
+        relpathName.append("STIL.md5");
+        std::ifstream f(relpathName.c_str());
+        if (f.good()) {
+            sidEngine.d_loadedstilmd5 = TRUE;
+        }
+    }
 }
-static void fetchSTILbase(const char * stilData, char **buf) {
+static char * fetchSTILmd5(char type) {
+    std::string stilName = sidSetting.c_dbpath;
+    if (type == 'G' || type == 'E') {
+        stilName.append("STIL.md5");
+    } else if (type == 'B') {
+        stilName.append("BUGlist.md5");
+    }
+    char md5[SidTune::MD5_LENGTH + 1];
+    std::string stilMD5 = sidEngine.p_song->createMD5New(md5);
+    std::string stilLine;
+    std::string stilBuffer;
+    BOOL stilFetch = FALSE;
+    
+    std::ifstream f(stilName.c_str());
+    if (f.good()) {
+        while(getline(f, stilLine)) {
+            if (stilFetch) {
+                if (stilLine.empty())
+                    break;
+                
+                stilBuffer.append(stilLine);
+                stilBuffer.append("\n");
+            } else if (stilLine.find(stilMD5) != std::string::npos && ((stilLine[0] == 'I' && type == 'G') || (stilLine[0] != 'I' && type == 'E'))) {
+                stilFetch = TRUE;
+            }
+        }
+        f.close();
+    }
+    
+    if (stilFetch) {
+        int stilLength = stilBuffer.size()+1;
+        char *stilInfo = (char*)malloc(stilLength);
+        //char *stilInfo = (char*)xmpfmisc->Alloc(stilLength);
+        memcpy(stilInfo, stilBuffer.data(), stilLength);
+        return stilInfo;
+    } else {
+        return NULL;
+    }
+}
+static void formatSTILbase(const char * stilData, char **buf) {
     if (stilData != NULL) {
         std::istringstream stilDatastr(stilData);
         std::string labetTxt;
@@ -1060,7 +1108,7 @@ static void WINAPI SIDex_Init()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v1.0)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v1.1)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1146,32 +1194,48 @@ static void WINAPI SIDex_GetMessage(char *buf)
 {
     // Load STIL database
     loadSTILbase();
-    if (sidEngine.d_loadedstil) {
+    if (sidEngine.d_loadedstil || sidEngine.d_loadedstilmd5) {
         const char * stilComment;
         const char * stilEntry;
         const char * stilBug;
-        std::string searchPath;
-            searchPath.append(sidEngine.p_songinfo->path());
-            searchPath.append(sidEngine.p_songinfo->dataFileName());
-        stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
-        stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),0,STIL::all);
-        stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
+        
+        // txt stil lookup
+        if (sidEngine.d_loadedstil) {
+            std::string searchPath;
+                searchPath.append(sidEngine.p_songinfo->path());
+                searchPath.append(sidEngine.p_songinfo->dataFileName());
+            stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
+            stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),0,STIL::all);
+            stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
+        }
+        
+        // md5 stil lookup
+        if (sidEngine.d_loadedstilmd5) {
+            if (stilComment == NULL) { stilComment = fetchSTILmd5('G'); }
+            if (stilEntry == NULL) { stilEntry = fetchSTILmd5('E'); }
+            if (stilBug == NULL) { stilBug = fetchSTILmd5('B'); }
+        }
         
         if (stilComment != NULL) {
             buf += sprintf(buf, "STIL Global Comment\t-=-\r");
-            fetchSTILbase(stilComment,&buf);
+            formatSTILbase(stilComment,&buf);
             buf += sprintf(buf, "\r");
         }
         if (stilEntry != NULL) {
             buf += sprintf(buf, "STIL Tune Entry\t-=-\r");
-            fetchSTILbase(stilEntry,&buf);
+            formatSTILbase(stilEntry,&buf);
             buf += sprintf(buf, "\r");
         }
         if (stilBug != NULL) {
             buf += sprintf(buf, "STIL Tune Bug\t-=-\r");
-            fetchSTILbase(stilBug,&buf);
+            formatSTILbase(stilBug,&buf);
             buf += sprintf(buf, "\r");
         }
+        
+        //
+        delete stilComment;
+        delete stilEntry;
+        delete stilBug;
     }
 }
 
@@ -1545,7 +1609,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v1.0)",
+    "SIDex (v1.1)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
