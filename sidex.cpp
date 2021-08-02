@@ -1025,7 +1025,7 @@ static char * fetchSTILmd5(char type) {
                 
                 stilBuffer.append(stilLine);
                 stilBuffer.append("\n");
-            } else if (stilLine.find(stilMD5) != std::string::npos && ((stilLine[0] == 'I' && type == 'G') || (stilLine[0] != 'I' && type == 'E'))) {
+            } else if (stilLine.find(stilMD5) != std::string::npos && ((stilLine[0] == 'I' && type == 'G') || (stilLine[0] != 'I' && type == 'E') || (type == 'B'))) {
                 stilFetch = TRUE;
             }
         }
@@ -1034,8 +1034,8 @@ static char * fetchSTILmd5(char type) {
     
     if (stilFetch) {
         int stilLength = stilBuffer.size()+1;
-        char *stilInfo = (char*)malloc(stilLength);
-        //char *stilInfo = (char*)xmpfmisc->Alloc(stilLength);
+        //char *stilInfo = (char*)malloc(stilLength);
+        char *stilInfo = (char*)xmpfmisc->Alloc(stilLength);
         memcpy(stilInfo, stilBuffer.data(), stilLength);
         return stilInfo;
     } else {
@@ -1066,6 +1066,9 @@ static void formatSTILbase(const char * stilData, char **buf) {
                 } else if (stilOutput.find("NAME: ") != -1) {
                     stilOutput.replace(stilOutput.find("NAME: "), 6, "");
                     labetTxt = "Name";
+                } else if (stilOutput.find("BUG: ") != -1) {
+                    stilOutput.replace(stilOutput.find("BUG: "), 5, "");
+                    labetTxt = "Bug";
                 }
                 char *value = xmpftext->Utf8(stilOutput.c_str(), -1);
                 *buf = xmpfmisc->FormatInfoText(*buf, labetTxt.c_str(), value);
@@ -1231,11 +1234,6 @@ static void WINAPI SIDex_GetMessage(char *buf)
             formatSTILbase(stilBug,&buf);
             buf += sprintf(buf, "\r");
         }
-        
-        //
-        delete stilComment;
-        delete stilEntry;
-        delete stilBug;
     }
 }
 
@@ -1276,7 +1274,7 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             } else if (sidEngine.p_songinfo->clockSpeed() == SidTuneInfo::CLOCK_NTSC) {
                 sidEngine.p_clockspeed = "NTSC";
             }
-            
+
             // detect player
             if (sidSetting.c_detectplayer && !sidEngine.d_loadedsidid && strlen(sidSetting.c_dbpath)>10) {
                 std::string relpathName = sidSetting.c_dbpath;
@@ -1294,7 +1292,6 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
                     c64player.replace(c64player.find("_"), 1, " ");
                 
                 memcpy(sidEngine.p_sididplayer, c64player.c_str(), 25);
-                xmpfmisc->Free(c64buf);
             }
             
             // load lengths
