@@ -1,3 +1,5 @@
+> Note this version is not in active development at this time, for the latest version please see here https://github.com/StronSon/xmplay-sidex
+
 # xmp-SIDex
 SID Input Plugin for the XMPlay audio player
 
