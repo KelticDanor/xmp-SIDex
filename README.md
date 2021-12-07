@@ -1,4 +1,7 @@
-> Note this version is not in active development at this time, for the latest version please see here https://github.com/StronSon/xmplay-sidex
+> ### Development Notice!
+> While you will see updates to this repository now and then it is just for personal libsidplayfp testing purposes and won't really be released on the xmplay support site or forum.
+> 
+> For the latest version in active development by Malade please see here https://github.com/StronSon/xmplay-sidex.
 
 # xmp-SIDex
 SID Input Plugin for the XMPlay audio player
@@ -13,14 +16,6 @@ This is brand spanking new plug-in to play SID files using the libsidplayfp-2.2.
 - stiltxt2md5 tool to support STIL outside of HVSC folders
 
 
-### STILtxt2md5
-This is a simply commandline to convert the existing STIL.txt and BUGlist.txt to md5 versions 
-that don't require the SID you are playing to be in the HVSC folder structure.
-
-It adds a few hundred KB to the size but nothing too bad, it has been added as a command line
-so you can run it again whenever you update your HVSC to the latest version.
-
-
 ### SIDId Support
 xmp-sidex does not keep a copy of the SIDId database internally but a sidid.cfg file is
 included in the archive. Copy the sidid.cfg folder to wherever you point the HVSC
@@ -30,9 +25,11 @@ You can also download the latest sidid.cfg file from the SIDId GitHub here: http
 
 
 ### Change Log
-v1.1
-- Added md5 lookup alternative for files outside of HVSC directory
-	[Note: Requires stiltxt2md5 to be run in the DOCUMENTS/ folder first]
+v1.1.4
+- Added patch for libsidplayfp-2.3.0 that fixes the digiboost bug
+- Old experimental md5 stil lookup removed.
+- Updated to libsidplayfp-2.3.0
+- Moved SIDId setup & fetch code out to its own function
 
 v1.0
 - Added fade-out option
