@@ -698,7 +698,6 @@ typedef struct
     SidId d_sididbase;
     bool d_loadeddbase;
     bool d_loadedstil;
-    bool d_loadedstilmd5;
     bool d_loadedsidid;
     char p_sididplayer[25];
     const SidTuneInfo* p_songinfo;
@@ -936,6 +935,32 @@ static inline std::string &trim(std::string &s) {
             std::not1(std::ptr_fun<int, int>(std::isspace))).base(), s.end());
     return s;
 }
+// functions to load and fetch the SIDId
+static void loadSIDId() {
+    if (sidSetting.c_detectplayer && !sidEngine.d_loadedsidid && strlen(sidSetting.c_dbpath)>10) {
+        std::string relpathName = sidSetting.c_dbpath;
+        relpathName.append("sidid.cfg");
+        sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(relpathName);
+    }
+}
+static void fetchSIDId(XMPFILE file) {
+    if (sidEngine.d_loadedsidid) {
+        // adapted sidid code, could be janky
+        std::string c64player;
+        uint_least8_t c64buf[xmpffile->GetSize(file)];
+        // currently getting everything but we really want only the tune
+        // sidEngine.p_songinfo->loadAddr();
+        // sidEngine.p_songinfo->dataFileLen();
+        xmpffile->Read(file,c64buf,xmpffile->GetSize(file));
+        std::vector<uint_least8_t> buffer(&c64buf[0], &c64buf[sizeof(c64buf)]);
+        c64player = sidEngine.d_sididbase.identify(buffer);
+        while (c64player.find("_") != -1)
+            c64player.replace(c64player.find("_"), 1, " ");
+
+        memcpy(sidEngine.p_sididplayer, c64player.c_str(), 25);
+    }
+}
+
 // functions to load and fetch the songlengthdbase
 static void loadSonglength() {
     if (!sidSetting.c_forcelength && !sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
@@ -993,53 +1018,6 @@ static void loadSTILbase() {
         if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
             sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
         }
-    }
-    if (!sidEngine.d_loadedstilmd5 && strlen(sidSetting.c_dbpath)>10) {
-        std::string relpathName = sidSetting.c_dbpath;
-        relpathName.append("STIL.md5");
-        std::ifstream f(relpathName.c_str());
-        if (f.good()) {
-            sidEngine.d_loadedstilmd5 = TRUE;
-        }
-    }
-}
-static char * fetchSTILmd5(char type) {
-    std::string stilName = sidSetting.c_dbpath;
-    if (type == 'G' || type == 'E') {
-        stilName.append("STIL.md5");
-    } else if (type == 'B') {
-        stilName.append("BUGlist.md5");
-    }
-    char md5[SidTune::MD5_LENGTH + 1];
-    std::string stilMD5 = sidEngine.p_song->createMD5New(md5);
-    std::string stilLine;
-    std::string stilBuffer;
-    BOOL stilFetch = FALSE;
-    
-    std::ifstream f(stilName.c_str());
-    if (f.good()) {
-        while(getline(f, stilLine)) {
-            if (stilFetch) {
-                if (stilLine.empty())
-                    break;
-                
-                stilBuffer.append(stilLine);
-                stilBuffer.append("\n");
-            } else if (stilLine.find(stilMD5) != std::string::npos && ((stilLine[0] == 'I' && type == 'G') || (stilLine[0] != 'I' && type == 'E') || (type == 'B'))) {
-                stilFetch = TRUE;
-            }
-        }
-        f.close();
-    }
-    
-    if (stilFetch) {
-        int stilLength = stilBuffer.size()+1;
-        //char *stilInfo = (char*)malloc(stilLength);
-        char *stilInfo = (char*)xmpfmisc->Alloc(stilLength);
-        memcpy(stilInfo, stilBuffer.data(), stilLength);
-        return stilInfo;
-    } else {
-        return NULL;
     }
 }
 static void formatSTILbase(const char * stilData, char **buf) {
@@ -1111,7 +1089,7 @@ static void WINAPI SIDex_Init()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v1.1)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.2.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v1.1.4)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.0.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1191,13 +1169,13 @@ static void WINAPI SIDex_GetGeneralInfo(char *buf)
     }
     
     buf += sprintf(buf, "%s\t%s\r", "Length", simpleLength(sidEngine.p_songlength, temp));
-    buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.2.1");
+    buf += sprintf(buf, "%s\t%s\r", "Library", "libsidplayfp-2.3.0");
 }
 static void WINAPI SIDex_GetMessage(char *buf)
 {
     // Load STIL database
     loadSTILbase();
-    if (sidEngine.d_loadedstil || sidEngine.d_loadedstilmd5) {
+    if (sidEngine.d_loadedstil) {
         const char * stilComment;
         const char * stilEntry;
         const char * stilBug;
@@ -1210,13 +1188,6 @@ static void WINAPI SIDex_GetMessage(char *buf)
             stilComment = sidEngine.d_stilbase.getAbsGlobalComment(searchPath.c_str());
             stilEntry = sidEngine.d_stilbase.getAbsEntry(searchPath.c_str(),0,STIL::all);
             stilBug = sidEngine.d_stilbase.getAbsBug(searchPath.c_str(),sidEngine.p_subsong);
-        }
-        
-        // md5 stil lookup
-        if (sidEngine.d_loadedstilmd5) {
-            if (stilComment == NULL) { stilComment = fetchSTILmd5('G'); }
-            if (stilEntry == NULL) { stilEntry = fetchSTILmd5('E'); }
-            if (stilBug == NULL) { stilBug = fetchSTILmd5('B'); }
         }
         
         if (stilComment != NULL) {
@@ -1276,23 +1247,8 @@ static DWORD WINAPI SIDex_Open(const char *filename, XMPFILE file)
             }
 
             // detect player
-            if (sidSetting.c_detectplayer && !sidEngine.d_loadedsidid && strlen(sidSetting.c_dbpath)>10) {
-                std::string relpathName = sidSetting.c_dbpath;
-                relpathName.append("sidid.cfg");
-                sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(relpathName);
-            }
-            if (sidEngine.d_loadedsidid) {
-                // adapted sidid code, could be janky
-                std::string c64player;
-                uint_least8_t c64buf[xmpffile->GetSize(file)];
-                xmpffile->Read(file,c64buf,xmpffile->GetSize(file));
-                std::vector<uint_least8_t> buffer(&c64buf[0], &c64buf[sizeof(c64buf)]);
-                c64player = sidEngine.d_sididbase.identify(buffer);
-                while (c64player.find("_") != -1)
-                    c64player.replace(c64player.find("_"), 1, " ");
-                
-                memcpy(sidEngine.p_sididplayer, c64player.c_str(), 25);
-            }
+            loadSIDId();
+            fetchSIDId(file);
             
             // load lengths
             loadSonglength();
@@ -1606,7 +1562,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v1.1)",
+    "SIDex (v1.1.4)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
