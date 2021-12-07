@@ -1,5 +1,5 @@
 > ### Development Notice!
-> While you will see updates to this repository now and then it is just for personal libsidplayfp testing purposes and won't really be released on the xmplay support site or forum.
+> While you will see updates to this repository now and then it is just for personal libsidplayfp testing purposes and won't be released on the xmplay support site or forum.
 > 
 > For the latest version in active development by Malade please see here https://github.com/StronSon/xmplay-sidex.
 
