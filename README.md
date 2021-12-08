@@ -25,10 +25,9 @@ You can also download the latest sidid.cfg file from the SIDId GitHub here: http
 
 
 ### Change Log
-v1.1.4
-- Added patch for libsidplayfp-2.3.0 that fixes the digiboost bug
+v1.1.5
+- Updated to libsidplayfp-2.3.1
 - Old experimental md5 stil lookup removed.
-- Updated to libsidplayfp-2.3.0
 - Moved SIDId setup & fetch code out to its own function
 
 v1.0
