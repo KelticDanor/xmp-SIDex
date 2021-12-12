@@ -13,7 +13,6 @@ This is simple plug-in to play SID files using the libsidplayfp library.
 - Fade-in support to try and remove clicks
 - SLDB, STIL, BUGlist from HVSC supported
 - Configurable SIDId support via sidid.cfg files
-- stiltxt2md5 tool to support STIL outside of HVSC folders
 
 
 ### SIDId Support
