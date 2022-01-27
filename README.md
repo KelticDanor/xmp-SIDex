@@ -18,12 +18,16 @@ This is simple plug-in to play SID files using the libsidplayfp library.
 ### SIDId Support
 xmp-sidex does not keep a copy of the SIDId database internally but a sidid.cfg file is
 included in the archive. Copy the sidid.cfg folder to wherever you point the HVSC
-DOCUMENTS/ path to.
+DOCUMENTS/ path to or you can just leave it with the plugin should work as well.
 
 You can also download the latest sidid.cfg file from the SIDId GitHub here: https://github.com/cadaver/sidid
 
 
 ### Change Log
+v1.1.6
+- Now checks multiple places for sidid.cfg so you don't need to move it anymore
+- If songlength path is invalid you will now get an error message, useful for relative path debugging
+
 v1.1.5
 - Updated to libsidplayfp-2.3.1
 - Old experimental md5 stil lookup removed.
