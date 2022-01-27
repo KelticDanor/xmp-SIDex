@@ -28,6 +28,7 @@ static XMPFUNC_REGISTRY *xmpfreg;
 #include <iomanip>
 #include <fstream>
 #include <sstream>
+#include <dirent.h>
 
 #ifndef _WIN32
 #include <libgen.h>
@@ -940,7 +941,29 @@ static void loadSIDId() {
     if (sidSetting.c_detectplayer && !sidEngine.d_loadedsidid && strlen(sidSetting.c_dbpath)>10) {
         std::string relpathName = sidSetting.c_dbpath;
         relpathName.append("sidid.cfg");
-        sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(relpathName);
+        char abspathName[_MAX_PATH];
+        if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
+            if (FILE *file = fopen(abspathName, "r")) {
+                fclose(file);
+                sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(abspathName);
+            } else {
+                //////////////////////////////////////////////////////////////////////////////////
+                //////////////////////////////////////////////////////////////////////////////////
+                //////////////////////////////////////////////////////////////////////////////////
+                relpathName = "sidid.cfg";
+                if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
+                    if (FILE *file = fopen(abspathName, "r")) {
+                        fclose(file);
+                        sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(abspathName);
+                    } else {
+                        // SILENTLY FAIL
+                    }
+                }
+                //////////////////////////////////////////////////////////////////////////////////
+                //////////////////////////////////////////////////////////////////////////////////
+                //////////////////////////////////////////////////////////////////////////////////
+            }
+        }
     }
 }
 static void fetchSIDId(XMPFILE file) {
@@ -966,7 +989,15 @@ static void loadSonglength() {
     if (!sidSetting.c_forcelength && !sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
         std::string relpathName = sidSetting.c_dbpath;
         relpathName.append("Songlengths.md5");
-        sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
+        char abspathName[_MAX_PATH];
+        if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
+            if (FILE *file = fopen(abspathName, "r")) {
+                fclose(file);
+                sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(abspathName);
+            } else {
+                MessageBox(0,abspathName, "Songlengths.md5 Path Invalid", MB_OK);
+            }
+        }
     }
 }
 static int fetchSonglength(SidTune* sidSong, int sidSubsong) {
@@ -1016,7 +1047,12 @@ static void loadSTILbase() {
         relpathName.replace((relpathName.length()-10), 10, "");
         char abspathName[_MAX_PATH];
         if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
-            sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
+            if (DIR *dir = opendir(abspathName)) {
+                closedir(dir);
+                sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
+            } else {
+                MessageBox(0,abspathName, "STIL Path Invalid", MB_OK);
+            }
         }
     }
 }
@@ -1089,7 +1125,7 @@ static void WINAPI SIDex_Init()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v1.1.5)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v1.1.6)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1562,7 +1598,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v1.1.5)",
+    "SIDex (v1.1.6)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
