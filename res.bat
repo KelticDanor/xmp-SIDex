@@ -1,0 +1,1 @@
+windres "C:\Users\Nathan\Documents\NetBeansProjects\xmp-sidex\configdialog.rc" "C:\Users\Nathan\Documents\NetBeansProjects\xmp-sidex\configdialog.o"

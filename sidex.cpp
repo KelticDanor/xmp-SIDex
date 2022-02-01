@@ -939,30 +939,24 @@ static inline std::string &trim(std::string &s) {
 // functions to load and fetch the SIDId
 static void loadSIDId() {
     if (sidSetting.c_detectplayer && !sidEngine.d_loadedsidid && strlen(sidSetting.c_dbpath)>10) {
-        std::string relpathName = sidSetting.c_dbpath;
+       std::string relpathName;
+       if ((sidSetting.c_dbpath[0]) == '.') {
+            TCHAR exepathName[FILENAME_MAX];
+            GetModuleFileName(nullptr, exepathName, FILENAME_MAX);
+            std::string::size_type slashPos = std::string(exepathName).find_last_of("\\/");
+            relpathName = std::string(exepathName).substr(0, slashPos);
+            relpathName.append("\\");
+            relpathName.append(sidSetting.c_dbpath);
+        } else {
+            relpathName = sidSetting.c_dbpath;
+        }
+        
         relpathName.append("sidid.cfg");
-        char abspathName[_MAX_PATH];
-        if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
-            if (FILE *file = fopen(abspathName, "r")) {
-                fclose(file);
-                sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(abspathName);
-            } else {
-                //////////////////////////////////////////////////////////////////////////////////
-                //////////////////////////////////////////////////////////////////////////////////
-                //////////////////////////////////////////////////////////////////////////////////
-                relpathName = "sidid.cfg";
-                if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
-                    if (FILE *file = fopen(abspathName, "r")) {
-                        fclose(file);
-                        sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(abspathName);
-                    } else {
-                        // SILENTLY FAIL
-                    }
-                }
-                //////////////////////////////////////////////////////////////////////////////////
-                //////////////////////////////////////////////////////////////////////////////////
-                //////////////////////////////////////////////////////////////////////////////////
-            }
+        if (FILE *file = fopen(relpathName.c_str(), "r")) {
+            fclose(file);
+            sidEngine.d_loadedsidid = sidEngine.d_sididbase.readConfigFile(relpathName);
+        } else {
+            MessageBox(0,"Unable to find sidid.cfg be sure to copying it to the DOCUMENTS/ folder.", "sidid.cfg Path Error", MB_OK);
         }
     }
 }
@@ -987,16 +981,24 @@ static void fetchSIDId(XMPFILE file) {
 // functions to load and fetch the songlengthdbase
 static void loadSonglength() {
     if (!sidSetting.c_forcelength && !sidEngine.d_loadeddbase && strlen(sidSetting.c_dbpath)>10) {
-        std::string relpathName = sidSetting.c_dbpath;
+       std::string relpathName;
+       if ((sidSetting.c_dbpath[0]) == '.') {
+            TCHAR exepathName[FILENAME_MAX];
+            GetModuleFileName(nullptr, exepathName, FILENAME_MAX);
+            std::string::size_type slashPos = std::string(exepathName).find_last_of("\\/");
+            relpathName = std::string(exepathName).substr(0, slashPos);
+            relpathName.append("\\");
+            relpathName.append(sidSetting.c_dbpath);
+        } else {
+            relpathName = sidSetting.c_dbpath;
+        }
+        
         relpathName.append("Songlengths.md5");
-        char abspathName[_MAX_PATH];
-        if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
-            if (FILE *file = fopen(abspathName, "r")) {
-                fclose(file);
-                sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(abspathName);
-            } else {
-                MessageBox(0,abspathName, "Songlengths.md5 Path Invalid", MB_OK);
-            }
+        if (FILE *file = fopen(relpathName.c_str(), "r")) {
+            fclose(file);
+            sidEngine.d_loadeddbase = sidEngine.d_songdbase.open(relpathName.c_str());
+        } else {
+            MessageBox(0,relpathName.c_str(), "Songlengths.md5 Path Invalid", MB_OK);
         }
     }
 }
@@ -1043,16 +1045,25 @@ static char *GetTags(const SidTuneInfo* p_songinfo)
 // try to load STIL database
 static void loadSTILbase() {
     if (!sidEngine.d_loadedstil && strlen(sidSetting.c_dbpath)>10) {
-        std::string relpathName = sidSetting.c_dbpath;
+        std::string relpathName;
+        if ((sidSetting.c_dbpath[0]) == '.') {
+            TCHAR exepathName[FILENAME_MAX];
+            GetModuleFileName(nullptr, exepathName, FILENAME_MAX);
+            std::string::size_type slashPos = std::string(exepathName).find_last_of("\\/");
+            relpathName = std::string(exepathName).substr(0, slashPos);
+            relpathName.append("\\");
+            relpathName.append(sidSetting.c_dbpath);
+            
+            char abspathName[_MAX_PATH];
+            _fullpath(abspathName, relpathName.c_str(), _MAX_PATH);
+            relpathName = abspathName;
+        } else {
+            relpathName = sidSetting.c_dbpath;
+        }
         relpathName.replace((relpathName.length()-10), 10, "");
-        char abspathName[_MAX_PATH];
-        if(_fullpath(abspathName, relpathName.c_str(), _MAX_PATH) != NULL ) {
-            if (DIR *dir = opendir(abspathName)) {
-                closedir(dir);
-                sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(abspathName);
-            } else {
-                MessageBox(0,abspathName, "STIL Path Invalid", MB_OK);
-            }
+        sidEngine.d_loadedstil = sidEngine.d_stilbase.setBaseDir(relpathName.c_str());
+        if (!sidEngine.d_loadedstil) {
+            MessageBox(0,relpathName.c_str(), "STIL Path Invalid", MB_OK);
         }
     }
 }
@@ -1125,7 +1136,7 @@ static void WINAPI SIDex_Init()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v1.1.6)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v1.1.7)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1598,7 +1609,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v1.1.6)",
+    "SIDex (v1.1.7)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
