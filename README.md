@@ -24,6 +24,10 @@ You can also download the latest sidid.cfg file from the SIDId GitHub here: http
 
 
 ### Change Log
+v1.1.8
+- Filter and other changes now apply as they are changed
+- Restart is no longer required to apply all other engine related settings
+
 v1.1.7
 - Now handles relative paths properly instead of just when it feels like it #Attempt 3#
 - If songlength path is invalid you will now get an error message, useful for relative path debugging
