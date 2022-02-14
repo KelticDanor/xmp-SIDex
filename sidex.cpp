@@ -713,6 +713,8 @@ typedef struct
     float fadein;
     float fadeout;
     int fadeouttrigger;
+    bool applyConfig = false;
+    bool queueReset = false;
 } SIDengine;
 static SIDengine sidEngine;
 
@@ -869,6 +871,8 @@ static bool applyConfig(bool initThis) {
         
         // apply digi boost
         sidEngine.m_config.digiBoost = sidSetting.c_enabledigiboost;
+    } else {
+        sidEngine.queueReset = true;
     }
     
     // apply filter status & levels
@@ -1107,6 +1111,11 @@ static void formatSTILbase(const char * stilData, char **buf) {
 // initialise the plugin
 static void WINAPI SIDex_Init()
 {
+    if (sidEngine.queueReset && sidEngine.b_loaded) {
+        delete sidEngine.m_builder;
+        delete sidEngine.m_engine;
+        sidEngine.b_loaded = FALSE;
+    }
     if (!sidEngine.b_loaded) {
         // set default config
         loadConfig();
@@ -1136,7 +1145,7 @@ static void WINAPI SIDex_Init()
 static void WINAPI SIDex_About(HWND win)
 {
     MessageBox(win,
-            "XMPlay SIDex plugin (v1.1.7)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.1.\n\nFREE FOR USE WITH XMPLAY",
+            "XMPlay SIDex plugin (v1.1.8)\nCopyright (c) 2021 Nathan Hindley\n\nThis plugin allows XMPlay to load/play sid files with libsidplayfp-2.3.1.\n\nFREE FOR USE WITH XMPLAY",
             "About...",
             MB_ICONINFORMATION);
 }
@@ -1467,6 +1476,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 {
     switch (msg) {
         case WM_NOTIFY:
+            
             switch (LOWORD(wParam)) {
                 case IDC_CHECK_ENABLEFILTER:
                     if (MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0)) {
@@ -1484,6 +1494,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                         EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), FALSE);
                         EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), FALSE);
                     }
+                    sidEngine.applyConfig = true;
                 case IDC_CHECK_FADEIN:
                     if (MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0)) {
                         EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), TRUE);
@@ -1492,6 +1503,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                         EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), FALSE);
                         EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), FALSE);
                     }
+                    sidEngine.applyConfig = true;
                 case IDC_CHECK_FADEOUT:
                     if (MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0)) {
                         EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEOUTLEVEL), TRUE);
@@ -1500,6 +1512,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                         EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEOUTLEVEL), FALSE);
                         EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEOUTLEVEL), FALSE);
                     }
+                    sidEngine.applyConfig = true;
                 case IDC_CHECK_SKIPSHORT:
                     if (MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0)) {
                         EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), TRUE);
@@ -1508,29 +1521,82 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                         EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), FALSE);
                         EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), FALSE);
                     }
+                    sidEngine.applyConfig = true;
                 case IDC_CHECK_RANDOMDELAY:
                     if (MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0)) {
                         EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), FALSE);
                     } else {
                         EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), TRUE);
                     }
+                    sidEngine.applyConfig = true;
                 case IDC_SLIDE_6581LEVEL:
                     MESS(IDC_LABEL_6581LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
+                    sidEngine.applyConfig = true;
                 case IDC_SLIDE_8580LEVEL:
                     MESS(IDC_LABEL_8580LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
+                    sidEngine.applyConfig = true;
                 case IDC_SLIDE_FADEINLEVEL:
                     MESS(IDC_LABEL_FADEINLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 100.f).substr(0,4).append("s").c_str());
+                    sidEngine.applyConfig = true;
                 case IDC_SLIDE_FADEOUTLEVEL:
                     if (SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) >= 100) {
                         MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,5).append("s").c_str());
                     } else {
                         MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,4).append("s").c_str());
                     }
+                    sidEngine.applyConfig = true;
+                case IDC_CHECK_LOCKSID:
+                    sidEngine.applyConfig = true;
+                case IDC_CHECK_LOCKCLOCK:
+                    sidEngine.applyConfig = true;
+                case IDC_CHECK_DIGIBOOST:
+                    sidEngine.applyConfig = true;
+                case IDC_CHECK_FORCELENGTH:
+                    sidEngine.applyConfig = true;
+                case IDC_CHECK_DISABLESEEK:
+                    sidEngine.applyConfig = true;
+                case IDC_CHECK_DETECTPLAYER:
+                    sidEngine.applyConfig = true;
+                case IDC_EDIT_DEFAULTLENGTH:
+                    sidEngine.applyConfig = true;
+                case IDC_EDIT_MINLENGTH:
+                    sidEngine.applyConfig = true;
+                case IDC_EDIT_POWERDELAY:
+                    sidEngine.applyConfig = true;
+            }
+            if (sidEngine.applyConfig) {
+                // SAVE & APPLY CONFIG
+                sidEngine.applyConfig = false;
+                sidSetting.c_locksidmodel = (BST_CHECKED==MESS(IDC_CHECK_LOCKSID, BM_GETCHECK, 0, 0));
+                sidSetting.c_lockclockspeed = (BST_CHECKED==MESS(IDC_CHECK_LOCKCLOCK, BM_GETCHECK, 0, 0));
+                sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
+                sidSetting.c_enablefilter = (BST_CHECKED==MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0));
+                sidSetting.c_powerdelayrandom = (BST_CHECKED==MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0));
+                sidSetting.c_forcelength = (BST_CHECKED==MESS(IDC_CHECK_FORCELENGTH, BM_GETCHECK, 0, 0));
+                sidSetting.c_skipshort = (BST_CHECKED==MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0));
+                sidSetting.c_fadein = (BST_CHECKED==MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0));
+                sidSetting.c_fadeout = (BST_CHECKED==MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0));
+                sidSetting.c_disableseek = (BST_CHECKED==MESS(IDC_CHECK_DISABLESEEK, BM_GETCHECK, 0, 0));
+                sidSetting.c_detectplayer = (BST_CHECKED==MESS(IDC_CHECK_DETECTPLAYER, BM_GETCHECK, 0, 0));
+                MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
+                MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
+                MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
+                MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
+                sidSetting.c_defaultlength = GetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, NULL, false);
+                sidSetting.c_minlength = GetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, NULL, false);
+                sidSetting.c_powerdelay = GetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, NULL, false);
+                sidSetting.c_6581filter = SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, TBM_GETPOS, 0, 0);
+                sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
+                sidSetting.c_fadeinms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, TBM_GETPOS, 0, 0) * 10;
+                sidSetting.c_fadeoutms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, TBM_GETPOS, 0, 0) * 100;
+                saveConfig();
             }
             break;
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
                 case IDOK:
+                    // SAVE & APPLY CONFIG
+                    sidEngine.applyConfig = false;
                     sidSetting.c_locksidmodel = (BST_CHECKED==MESS(IDC_CHECK_LOCKSID, BM_GETCHECK, 0, 0));
                     sidSetting.c_lockclockspeed = (BST_CHECKED==MESS(IDC_CHECK_LOCKCLOCK, BM_GETCHECK, 0, 0));
                     sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
@@ -1553,8 +1619,6 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
                     sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
                     sidSetting.c_fadeinms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, TBM_GETPOS, 0, 0) * 10;
                     sidSetting.c_fadeoutms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, TBM_GETPOS, 0, 0) * 100;
-                    
-                    // apply configuraton
                     saveConfig();
                 case IDCANCEL:
                     EndDialog(hWnd, 0);
@@ -1609,7 +1673,7 @@ static void WINAPI SIDex_Config(HWND win)
 // plugin interface
 static XMPIN xmpin={
     0,
-    "SIDex (v1.1.7)",
+    "SIDex (v1.1.8)",
     "SIDex\0sid",
     SIDex_About,
     SIDex_Config,
