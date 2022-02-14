@@ -713,6 +713,7 @@ typedef struct
     float fadein;
     float fadeout;
     int fadeouttrigger;
+    bool initConfig = false;
     bool applyConfig = false;
     bool queueReset = false;
 } SIDengine;
@@ -1232,9 +1233,9 @@ static void WINAPI SIDex_GetMessage(char *buf)
     // Load STIL database
     loadSTILbase();
     if (sidEngine.d_loadedstil) {
-        const char * stilComment;
-        const char * stilEntry;
-        const char * stilBug;
+        const char * stilComment = NULL;
+        const char * stilEntry = NULL;
+        const char * stilBug = NULL;
         
         // txt stil lookup
         if (sidEngine.d_loadedstil) {
@@ -1476,120 +1477,121 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
 {
     switch (msg) {
         case WM_NOTIFY:
-            
-            switch (LOWORD(wParam)) {
-                case IDC_CHECK_ENABLEFILTER:
-                    if (MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0)) {
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_6581LEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_8580LEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_6581LEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_8580LEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), TRUE);
-                    } else {
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_6581LEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_8580LEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_6581LEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_8580LEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), FALSE);
-                    }
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_FADEIN:
-                    if (MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0)) {
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), TRUE);
-                    } else {
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), FALSE);
-                    }
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_FADEOUT:
-                    if (MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0)) {
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEOUTLEVEL), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEOUTLEVEL), TRUE);
-                    } else {
-                        EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEOUTLEVEL), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEOUTLEVEL), FALSE);
-                    }
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_SKIPSHORT:
-                    if (MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0)) {
-                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), TRUE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), TRUE);
-                    } else {
-                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), FALSE);
-                        EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), FALSE);
-                    }
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_RANDOMDELAY:
-                    if (MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0)) {
-                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), FALSE);
-                    } else {
-                        EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), TRUE);
-                    }
-                    sidEngine.applyConfig = true;
-                case IDC_SLIDE_6581LEVEL:
-                    MESS(IDC_LABEL_6581LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
-                    sidEngine.applyConfig = true;
-                case IDC_SLIDE_8580LEVEL:
-                    MESS(IDC_LABEL_8580LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
-                    sidEngine.applyConfig = true;
-                case IDC_SLIDE_FADEINLEVEL:
-                    MESS(IDC_LABEL_FADEINLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 100.f).substr(0,4).append("s").c_str());
-                    sidEngine.applyConfig = true;
-                case IDC_SLIDE_FADEOUTLEVEL:
-                    if (SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) >= 100) {
-                        MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,5).append("s").c_str());
-                    } else {
-                        MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,4).append("s").c_str());
-                    }
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_LOCKSID:
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_LOCKCLOCK:
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_DIGIBOOST:
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_FORCELENGTH:
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_DISABLESEEK:
-                    sidEngine.applyConfig = true;
-                case IDC_CHECK_DETECTPLAYER:
-                    sidEngine.applyConfig = true;
-                case IDC_EDIT_DEFAULTLENGTH:
-                    sidEngine.applyConfig = true;
-                case IDC_EDIT_MINLENGTH:
-                    sidEngine.applyConfig = true;
-                case IDC_EDIT_POWERDELAY:
-                    sidEngine.applyConfig = true;
-            }
-            if (sidEngine.applyConfig) {
-                // SAVE & APPLY CONFIG
-                sidEngine.applyConfig = false;
-                sidSetting.c_locksidmodel = (BST_CHECKED==MESS(IDC_CHECK_LOCKSID, BM_GETCHECK, 0, 0));
-                sidSetting.c_lockclockspeed = (BST_CHECKED==MESS(IDC_CHECK_LOCKCLOCK, BM_GETCHECK, 0, 0));
-                sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
-                sidSetting.c_enablefilter = (BST_CHECKED==MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0));
-                sidSetting.c_powerdelayrandom = (BST_CHECKED==MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0));
-                sidSetting.c_forcelength = (BST_CHECKED==MESS(IDC_CHECK_FORCELENGTH, BM_GETCHECK, 0, 0));
-                sidSetting.c_skipshort = (BST_CHECKED==MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0));
-                sidSetting.c_fadein = (BST_CHECKED==MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0));
-                sidSetting.c_fadeout = (BST_CHECKED==MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0));
-                sidSetting.c_disableseek = (BST_CHECKED==MESS(IDC_CHECK_DISABLESEEK, BM_GETCHECK, 0, 0));
-                sidSetting.c_detectplayer = (BST_CHECKED==MESS(IDC_CHECK_DETECTPLAYER, BM_GETCHECK, 0, 0));
-                MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
-                MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
-                MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
-                MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
-                sidSetting.c_defaultlength = GetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, NULL, false);
-                sidSetting.c_minlength = GetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, NULL, false);
-                sidSetting.c_powerdelay = GetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, NULL, false);
-                sidSetting.c_6581filter = SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, TBM_GETPOS, 0, 0);
-                sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
-                sidSetting.c_fadeinms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, TBM_GETPOS, 0, 0) * 10;
-                sidSetting.c_fadeoutms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, TBM_GETPOS, 0, 0) * 100;
-                saveConfig();
+            if (!sidEngine.initConfig) {
+                switch (LOWORD(wParam)) {
+                    case IDC_CHECK_ENABLEFILTER:
+                        if (MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0)) {
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_6581LEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_8580LEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_6581LEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_8580LEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), TRUE);
+                        } else {
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_6581LEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_8580LEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_6581LEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_8580LEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_TITLE_6581LEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_TITLE_8580LEVEL), FALSE);
+                        }
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_FADEIN:
+                        if (MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0)) {
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), TRUE);
+                        } else {
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEINLEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEINLEVEL), FALSE);
+                        }
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_FADEOUT:
+                        if (MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0)) {
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEOUTLEVEL), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEOUTLEVEL), TRUE);
+                        } else {
+                            EnableWindow(GetDlgItem(hWnd, IDC_SLIDE_FADEOUTLEVEL), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_FADEOUTLEVEL), FALSE);
+                        }
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_SKIPSHORT:
+                        if (MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0)) {
+                            EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), TRUE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), TRUE);
+                        } else {
+                            EnableWindow(GetDlgItem(hWnd, IDC_EDIT_MINLENGTH), FALSE);
+                            EnableWindow(GetDlgItem(hWnd, IDC_LABEL_MINLENGTH), FALSE);
+                        }
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_RANDOMDELAY:
+                        if (MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0)) {
+                            EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), FALSE);
+                        } else {
+                            EnableWindow(GetDlgItem(hWnd, IDC_EDIT_POWERDELAY), TRUE);
+                        }
+                        sidEngine.applyConfig = true;
+                    case IDC_SLIDE_6581LEVEL:
+                        MESS(IDC_LABEL_6581LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
+                        sidEngine.applyConfig = true;
+                    case IDC_SLIDE_8580LEVEL:
+                        MESS(IDC_LABEL_8580LEVEL, WM_SETTEXT, 0, std::to_string(SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0)).append("%").c_str());
+                        sidEngine.applyConfig = true;
+                    case IDC_SLIDE_FADEINLEVEL:
+                        MESS(IDC_LABEL_FADEINLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 100.f).substr(0,4).append("s").c_str());
+                        sidEngine.applyConfig = true;
+                    case IDC_SLIDE_FADEOUTLEVEL:
+                        if (SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) >= 100) {
+                            MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,5).append("s").c_str());
+                        } else {
+                            MESS(IDC_LABEL_FADEOUTLEVEL, WM_SETTEXT, 0, std::to_string((float)SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, (UINT) TBM_GETPOS, (WPARAM) 0, (LPARAM) 0) / 10.f).substr(0,4).append("s").c_str());
+                        }
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_LOCKSID:
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_LOCKCLOCK:
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_DIGIBOOST:
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_FORCELENGTH:
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_DISABLESEEK:
+                        sidEngine.applyConfig = true;
+                    case IDC_CHECK_DETECTPLAYER:
+                        sidEngine.applyConfig = true;
+                    case IDC_EDIT_DEFAULTLENGTH:
+                        sidEngine.applyConfig = true;
+                    case IDC_EDIT_MINLENGTH:
+                        sidEngine.applyConfig = true;
+                    case IDC_EDIT_POWERDELAY:
+                        sidEngine.applyConfig = true;
+                }
+                if (sidEngine.applyConfig) {
+                    // SAVE & APPLY CONFIG
+                    sidEngine.applyConfig = false;
+                    sidSetting.c_locksidmodel = (BST_CHECKED==MESS(IDC_CHECK_LOCKSID, BM_GETCHECK, 0, 0));
+                    sidSetting.c_lockclockspeed = (BST_CHECKED==MESS(IDC_CHECK_LOCKCLOCK, BM_GETCHECK, 0, 0));
+                    sidSetting.c_enabledigiboost = (BST_CHECKED==MESS(IDC_CHECK_DIGIBOOST, BM_GETCHECK, 0, 0));
+                    sidSetting.c_enablefilter = (BST_CHECKED==MESS(IDC_CHECK_ENABLEFILTER, BM_GETCHECK, 0, 0));
+                    sidSetting.c_powerdelayrandom = (BST_CHECKED==MESS(IDC_CHECK_RANDOMDELAY, BM_GETCHECK, 0, 0));
+                    sidSetting.c_forcelength = (BST_CHECKED==MESS(IDC_CHECK_FORCELENGTH, BM_GETCHECK, 0, 0));
+                    sidSetting.c_skipshort = (BST_CHECKED==MESS(IDC_CHECK_SKIPSHORT, BM_GETCHECK, 0, 0));
+                    sidSetting.c_fadein = (BST_CHECKED==MESS(IDC_CHECK_FADEIN, BM_GETCHECK, 0, 0));
+                    sidSetting.c_fadeout = (BST_CHECKED==MESS(IDC_CHECK_FADEOUT, BM_GETCHECK, 0, 0));
+                    sidSetting.c_disableseek = (BST_CHECKED==MESS(IDC_CHECK_DISABLESEEK, BM_GETCHECK, 0, 0));
+                    sidSetting.c_detectplayer = (BST_CHECKED==MESS(IDC_CHECK_DETECTPLAYER, BM_GETCHECK, 0, 0));
+                    MESS(IDC_COMBO_SID, WM_GETTEXT, 10, sidSetting.c_sidmodel);
+                    MESS(IDC_COMBO_CLOCK, WM_GETTEXT, 10, sidSetting.c_clockspeed);
+                    MESS(IDC_COMBO_SAMPLEMETHOD, WM_GETTEXT, 10, sidSetting.c_samplemethod);
+                    MESS(IDC_EDIT_DBPATH, WM_GETTEXT, 250, sidSetting.c_dbpath);
+                    sidSetting.c_defaultlength = GetDlgItemInt(hWnd, IDC_EDIT_DEFAULTLENGTH, NULL, false);
+                    sidSetting.c_minlength = GetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, NULL, false);
+                    sidSetting.c_powerdelay = GetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, NULL, false);
+                    sidSetting.c_6581filter = SendDlgItemMessage(hWnd, IDC_SLIDE_6581LEVEL, TBM_GETPOS, 0, 0);
+                    sidSetting.c_8580filter = SendDlgItemMessage(hWnd, IDC_SLIDE_8580LEVEL, TBM_GETPOS, 0, 0);
+                    sidSetting.c_fadeinms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEINLEVEL, TBM_GETPOS, 0, 0) * 10;
+                    sidSetting.c_fadeoutms = SendDlgItemMessage(hWnd, IDC_SLIDE_FADEOUTLEVEL, TBM_GETPOS, 0, 0) * 100;
+                    saveConfig();
+                }
             }
             break;
         case WM_COMMAND:
@@ -1626,6 +1628,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             }
             break;
         case WM_INITDIALOG:
+            sidEngine.initConfig = true;
             SendMessage(GetDlgItem(hWnd, IDC_COMBO_SID), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("6581"));
             SendMessage(GetDlgItem(hWnd, IDC_COMBO_SID), (UINT) CB_ADDSTRING, (WPARAM) 0, (LPARAM) TEXT ("8580"));
             SendMessage(GetDlgItem(hWnd, IDC_COMBO_SID), CB_SELECTSTRING, (WPARAM) -1, (LPARAM) sidSetting.c_sidmodel);
@@ -1660,6 +1663,7 @@ static BOOL CALLBACK CFGDialogProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lP
             SetDlgItemInt(hWnd, IDC_EDIT_MINLENGTH, sidSetting.c_minlength, false);
             SetDlgItemInt(hWnd, IDC_EDIT_POWERDELAY, sidSetting.c_powerdelay, false);
             SetDlgItemText(hWnd, IDC_EDIT_DBPATH, sidSetting.c_dbpath);
+            sidEngine.initConfig = false;
             //
             return TRUE;
     }
