@@ -1,7 +1,7 @@
 > ### Development Notice!
-> While you will see updates to this repository now and then it is just for personal libsidplayfp testing purposes and won't be released on the xmplay support site or forum.
+> This version of xmp-SIDex is now defunct and will no longer be updated in any way, it will be kept here for posterity purposes. A new version called SIDevo will be released soon with it's own repository. A link will be added here in future when it is available publicly.
 > 
-> For the latest version in active development by Malade please see here https://github.com/StronSon/xmplay-sidex.
+> 2.0+ versions of this plugin by Malade are no longer on github but you may download them from the support site here: https://support.xmplay.com/files_view.php?file_id=720 if you are interested in it.
 
 # xmp-SIDex
 SID Input Plugin for the XMPlay audio player
