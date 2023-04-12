@@ -1,7 +1,7 @@
 > ### Development Notice!
 > This version of xmp-SIDex is now defunct and will no longer be updated in any way, it will be kept here for posterity purposes. A new version called SIDevo has been remade in Visual Studio 2022 and can be located here https://github.com/KelticDanor/xmp-SIDevo.
 > 
-> 2.0+ versions of this plugin by Malade are no longer on github but you may download them from the support site here: https://support.xmplay.com/files_view.php?file_id=720 if you are interested in it.
+> 2.0+ versions of this plugin by Malade are unfortunately no longer here on github but you may download a version of the source from the support site here: https://support.xmplay.com/files_view.php?file_id=720 if you are interested.
 
 # xmp-SIDex
 SID Input Plugin for the XMPlay audio player
